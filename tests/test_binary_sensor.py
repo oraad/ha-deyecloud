@@ -23,8 +23,8 @@ async def test_binary_sensor_is_on(hass, mock_config_entry, mock_api_client) -> 
         coordinator=coordinator,
     )
     await coordinator.async_refresh()
-    plant_data = coordinator.data["101"]
-    entities = _build_station_entities(coordinator, "101", plant_data, "sub-101")
+    station_data = coordinator.data["101"]
+    entities = _build_station_entities(coordinator, "101", station_data, "sub-101")
     assert isinstance(entities[0], DeyeCloudOnlineBinarySensor)
     assert entities[0].is_on is True
 

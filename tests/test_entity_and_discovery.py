@@ -24,8 +24,8 @@ async def test_binary_sensor_runtime_discovery(
     """Runtime discovery adds online binary sensors for new devices."""
     await setup_config_entry(hass, mock_config_entry)
     runtime = mock_config_entry.runtime_data
-    plant = runtime.coordinator.data["101"]
-    plant.devices.append(
+    station = runtime.coordinator.data["101"]
+    station.devices.append(
         Device(
             device_sn="NEW789",
             device_type="METER",
@@ -73,7 +73,7 @@ async def test_coordinator_listener_sets_pending_when_lock_held(
         return {}, False, False
 
     with patch(
-        "custom_components.deyecloud.subentry_sync.async_sync_plant_subentries",
+        "custom_components.deyecloud.subentry_sync.async_sync_station_subentries",
         side_effect=slow_sync,
     ):
         first = asyncio.create_task(
@@ -85,3 +85,150 @@ async def test_coordinator_listener_sets_pending_when_lock_held(
         await first
 
     runtime.discovery_in_progress = False
+
+
+async def test_child_device_name_type_only(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Single device type uses label-only DeviceInfo name."""
+    from custom_components.deyecloud.binary_sensor import DeyeCloudOnlineBinarySensor
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+    from custom_components.deyecloud.data import DeyeCloudRuntimeData
+
+    mock_config_entry.add_to_hass(hass)
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    mock_config_entry.runtime_data = DeyeCloudRuntimeData(
+        client=mock_api_client,
+        coordinator=coordinator,
+    )
+    await coordinator.async_refresh()
+
+    entity = DeyeCloudOnlineBinarySensor(
+        coordinator,
+        station_id="101",
+        subentry_id="sub-101",
+        device=coordinator.data["101"].devices[0],
+    )
+    assert entity.device_info is not None
+    assert entity.device_info.get("name") == "Inverter"
+    assert entity.device_info.get("serial_number") == "INV123"
+
+
+async def test_child_device_name_appends_sn_for_duplicate_types(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Duplicate device types append serial to DeviceInfo name."""
+    from custom_components.deyecloud.api_types import Device, StationCoordinatorData
+    from custom_components.deyecloud.binary_sensor import DeyeCloudOnlineBinarySensor
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+    from custom_components.deyecloud.data import DeyeCloudRuntimeData
+
+    mock_config_entry.add_to_hass(hass)
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    mock_config_entry.runtime_data = DeyeCloudRuntimeData(
+        client=mock_api_client,
+        coordinator=coordinator,
+    )
+    await coordinator.async_refresh()
+
+    station_data = coordinator.data["101"]
+    station_data.devices.append(
+        Device(
+            device_sn="BAT002",
+            device_type="BATTERY",
+            station_id="101",
+            device_state=1,
+            connect_status=1,
+        )
+    )
+    station_data.devices.append(
+        Device(
+            device_sn="BAT003",
+            device_type="BATTERY",
+            station_id="101",
+            device_state=1,
+            connect_status=1,
+        )
+    )
+    coordinator.data["101"] = StationCoordinatorData(
+        info=station_data.info,
+        devices=station_data.devices,
+        device_data=station_data.device_data,
+        measure_points=station_data.measure_points,
+        station_latest=station_data.station_latest,
+    )
+
+    bat002 = DeyeCloudOnlineBinarySensor(
+        coordinator,
+        station_id="101",
+        subentry_id="sub-101",
+        device=station_data.devices[-2],
+    )
+    bat003 = DeyeCloudOnlineBinarySensor(
+        coordinator,
+        station_id="101",
+        subentry_id="sub-101",
+        device=station_data.devices[-1],
+    )
+    assert bat002.device_info is not None
+    assert bat003.device_info is not None
+    assert bat002.device_info.get("name") == "Battery BAT002"
+    assert bat003.device_info.get("name") == "Battery BAT003"
+
+
+async def test_station_hub_device_model(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Station hub device uses Station model label."""
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+    from custom_components.deyecloud.data import DeyeCloudRuntimeData
+    from custom_components.deyecloud.sensor import DeyeCloudStationSensor
+
+    mock_config_entry.add_to_hass(hass)
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    mock_config_entry.runtime_data = DeyeCloudRuntimeData(
+        client=mock_api_client,
+        coordinator=coordinator,
+    )
+    await coordinator.async_refresh()
+
+    entity = DeyeCloudStationSensor(
+        coordinator,
+        station_id="101",
+        subentry_id="sub-101",
+        metric_key="generationPower",
+    )
+    assert entity.device_info is not None
+    assert entity.device_info.get("model") == "Station"
+    assert entity.device_info.get("name") == "Home Plant"
+
+
+async def test_child_device_name_without_station_data(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Device name falls back to label when station data is unavailable."""
+    from custom_components.deyecloud.api_types import Device
+    from custom_components.deyecloud.binary_sensor import DeyeCloudOnlineBinarySensor
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+    from custom_components.deyecloud.data import DeyeCloudRuntimeData
+
+    mock_config_entry.add_to_hass(hass)
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    mock_config_entry.runtime_data = DeyeCloudRuntimeData(
+        client=mock_api_client,
+        coordinator=coordinator,
+    )
+    coordinator.data = {}
+
+    entity = DeyeCloudOnlineBinarySensor(
+        coordinator,
+        station_id="101",
+        subentry_id="sub-101",
+        device=Device(
+            device_sn="INV123",
+            device_type="INVERTER",
+            station_id="101",
+        ),
+    )
+    assert entity.device_info is not None
+    assert entity.device_info.get("name") == "Inverter"

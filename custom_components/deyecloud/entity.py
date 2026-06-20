@@ -11,7 +11,7 @@ from .const import DOMAIN, device_type_label
 from .coordinator import DeyeCloudCoordinator
 
 if TYPE_CHECKING:
-    from .api_types import Device, PlantCoordinatorData
+    from .api_types import Device, StationCoordinatorData
 
 
 class DeyeCloudEntity(CoordinatorEntity[DeyeCloudCoordinator]):
@@ -36,18 +36,36 @@ class DeyeCloudEntity(CoordinatorEntity[DeyeCloudCoordinator]):
         self._attr_unique_id = unique_id
         self._attr_device_info = self._build_device_info()
 
-    def _plant_data(self) -> PlantCoordinatorData | None:
+    def _station_data(self) -> StationCoordinatorData | None:
         return self.coordinator.data.get(self._station_id)
 
+    def _child_device_name(self, label: str) -> str:
+        """Return type-only name, with serial when types duplicate in the station."""
+        if self._device is None:
+            return label
+        station_data = self._station_data()
+        if not station_data:
+            return label
+        same_type_count = sum(
+            1
+            for device in station_data.devices
+            if device_type_label(device.device_type) == label
+        )
+        if same_type_count > 1:
+            return f"{label} {self._device.device_sn}"
+        return label
+
     def _build_device_info(self) -> DeviceInfo:
-        plant_data = self._plant_data()
-        plant_name = plant_data.info.name if plant_data else f"Plant {self._station_id}"
+        station_data = self._station_data()
+        station_name = (
+            station_data.info.name if station_data else f"Station {self._station_id}"
+        )
 
         if self._device is not None:
             label = device_type_label(self._device.device_type)
             info = DeviceInfo(
                 identifiers={(DOMAIN, self._device.device_sn)},
-                name=f"{plant_name} {label} {self._device.device_sn}",
+                name=self._child_device_name(label),
                 manufacturer="Deye",
                 model=label,
                 serial_number=self._device.device_sn,
@@ -57,7 +75,7 @@ class DeyeCloudEntity(CoordinatorEntity[DeyeCloudCoordinator]):
 
         return DeviceInfo(
             identifiers={(DOMAIN, f"station_{self._station_id}")},
-            name=plant_name,
+            name=station_name,
             manufacturer="Deye",
-            model="Plant",
+            model="Station",
         )

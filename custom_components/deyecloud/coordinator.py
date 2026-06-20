@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api_types import Device, MeasurePoint, PlantCoordinatorData, Station
+from .api_types import Device, MeasurePoint, Station, StationCoordinatorData
 from .const import DOMAIN, LOGGER, UPDATE_INTERVAL_SECONDS
 from .exceptions import DeyeCloudAuthError, DeyeCloudConnectionError, DeyeCloudError
 from .subentry_sync import filter_stations_by_selection, normalize_station_id
@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from .data import DeyeCloudConfigEntry
 
 
-class DeyeCloudCoordinator(DataUpdateCoordinator[dict[str, PlantCoordinatorData]]):
-    """Fetch and cache DeyeCloud plant and device data."""
+class DeyeCloudCoordinator(DataUpdateCoordinator[dict[str, StationCoordinatorData]]):
+    """Fetch and cache DeyeCloud station and device data."""
 
     config_entry: DeyeCloudConfigEntry
 
@@ -44,7 +44,7 @@ class DeyeCloudCoordinator(DataUpdateCoordinator[dict[str, PlantCoordinatorData]
             for device in devices
         }
 
-    async def _async_update_data(self) -> dict[str, PlantCoordinatorData]:
+    async def _async_update_data(self) -> dict[str, StationCoordinatorData]:
         client = self.config_entry.runtime_data.client
         try:
             stations = await client.async_get_stations()
@@ -58,9 +58,9 @@ class DeyeCloudCoordinator(DataUpdateCoordinator[dict[str, PlantCoordinatorData]
             for device in devices:
                 devices_by_station.setdefault(device.station_id, []).append(device)
 
-            async def build_plant_data(
+            async def build_station_data(
                 station: Station,
-            ) -> tuple[str, PlantCoordinatorData]:
+            ) -> tuple[str, StationCoordinatorData]:
                 station_devices = devices_by_station.get(station.station_id, [])
                 device_sns = [device.device_sn for device in station_devices]
                 latest, station_latest = await asyncio.gather(
@@ -69,7 +69,7 @@ class DeyeCloudCoordinator(DataUpdateCoordinator[dict[str, PlantCoordinatorData]
                 )
                 device_data = {item.device_sn: item for item in latest}
 
-                return station.station_id, PlantCoordinatorData(
+                return station.station_id, StationCoordinatorData(
                     info=station,
                     devices=station_devices,
                     device_data=device_data,
@@ -78,7 +78,7 @@ class DeyeCloudCoordinator(DataUpdateCoordinator[dict[str, PlantCoordinatorData]
                 )
 
             results = await asyncio.gather(
-                *(build_plant_data(station) for station in stations)
+                *(build_station_data(station) for station in stations)
             )
             return {
                 normalize_station_id(station_id) or station_id: data

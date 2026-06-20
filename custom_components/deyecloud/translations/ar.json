@@ -49,11 +49,11 @@
           "company_id": "معرّف الشركة (اختياري)"
         }
       },
-      "plant_select": {
+      "station_select": {
         "title": "اختيار المحطات",
         "description": "اختر محطات DeyeCloud التي تريد تحميلها في Home Assistant.",
         "data": {
-          "selected_plants": "المحطات"
+          "selected_stations": "المحطات"
         }
       }
     },
@@ -61,7 +61,7 @@
       "auth_failed": "فشلت المصادقة. تحقق من بيانات الاعتماد ومفاتيح التطبيق.",
       "cannot_connect": "تعذّر الاتصال بـ DeyeCloud.",
       "no_stations_found": "نجحت المصادقة لكن لم يتم العثور على محطات.",
-      "no_plants_selected": "اختر محطة واحدة على الأقل للتحميل.",
+      "no_stations_selected": "اختر محطة واحدة على الأقل للتحميل.",
       "unknown": "حدث خطأ غير متوقع أثناء الاتصال بـ DeyeCloud.",
       "station_not_found": "تعذّر العثور على المحطة المحددة."
     },
@@ -69,22 +69,22 @@
       "already_configured": "حساب DeyeCloud هذا مُعدّ مسبقاً.",
       "reauth_successful": "تمت إعادة المصادقة بنجاح.",
       "reconfigure_successful": "تمت إعادة الإعداد بنجاح.",
-      "all_plants_configured": "جميع المحطات في حسابك مُعدّة مسبقاً."
+      "all_stations_configured": "جميع المحطات في حسابك مُعدّة مسبقاً."
     }
   },
   "options": {
     "step": {
       "init": {
         "menu_options": {
-          "plants": "اختيار المحطات",
+          "stations": "اختيار المحطات",
           "credentials": "تحديث بيانات الاعتماد"
         }
       },
-      "plants": {
+      "stations": {
         "title": "اختيار المحطات",
         "description": "اختر محطات DeyeCloud التي تريد تحميلها في Home Assistant.",
         "data": {
-          "selected_plants": "المحطات"
+          "selected_stations": "المحطات"
         }
       },
       "credentials": {
@@ -101,7 +101,7 @@
     }
   },
   "config_subentries": {
-    "plant": {
+    "station": {
       "entry_type": "محطة",
       "initiate_flow": {
         "user": "إضافة محطة",
@@ -117,7 +117,7 @@
         }
       },
       "abort": {
-        "all_plants_configured": "جميع المحطات مُعدّة مسبقاً.",
+        "all_stations_configured": "جميع المحطات مُعدّة مسبقاً.",
         "auth_failed": "فشلت المصادقة أثناء تحميل المحطات.",
         "station_not_found": "تعذّر العثور على المحطة المحددة."
       }

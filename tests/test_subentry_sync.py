@@ -1,4 +1,4 @@
-"""Tests for plant subentry sync."""
+"""Tests for station subentry sync."""
 
 from __future__ import annotations
 
@@ -7,19 +7,19 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.deyecloud.api_types import Station
 from custom_components.deyecloud.const import (
-    CONF_SELECTED_PLANTS,
+    CONF_SELECTED_STATIONS,
     CONF_STATION_ID,
     DOMAIN,
-    SUBENTRY_TYPE_PLANT,
+    SUBENTRY_TYPE_STATION,
 )
 from custom_components.deyecloud.subentry_sync import (
-    async_sync_plant_subentries,
-    build_plant_subentry_map,
+    async_sync_station_subentries,
+    build_station_subentry_map,
     filter_stations_by_selection,
     get_selected_station_ids,
     get_station_id,
     normalize_station_id,
-    register_plant_entities,
+    register_station_entities,
     station_display_name,
 )
 
@@ -48,9 +48,10 @@ def test_station_display_name() -> None:
     """Return display name."""
     assert station_display_name({"name": "Home"}, "101") == "Home"
     assert station_display_name(Station("101", "Plant A"), "101") == "Plant A"
+    assert station_display_name({}, "101") == "Station 101"
 
 
-async def test_sync_adds_plant_subentries(hass, config_data) -> None:
+async def test_sync_adds_station_subentries(hass, config_data) -> None:
     """Sync creates subentries for API stations."""
     entry = MockConfigEntry(domain=DOMAIN, data=config_data)
     entry.add_to_hass(hass)
@@ -59,27 +60,29 @@ async def test_sync_adds_plant_subentries(hass, config_data) -> None:
         Station(station_id="202", name="Office Plant"),
     ]
 
-    _, structural_changed, _ = await async_sync_plant_subentries(hass, entry, stations)
+    _, structural_changed, _ = await async_sync_station_subentries(
+        hass, entry, stations
+    )
     assert structural_changed is True
 
     refreshed = hass.config_entries.async_get_entry(entry.entry_id)
     assert refreshed is not None
     assert len(refreshed.subentries) == 2
-    plant_map = build_plant_subentry_map(refreshed)
-    assert set(plant_map) == {"101", "202"}
+    station_map = build_station_subentry_map(refreshed)
+    assert set(station_map) == {"101", "202"}
 
 
-async def test_sync_respects_selected_plants(hass, mock_config_entry) -> None:
-    """Sync only creates subentries for selected plants."""
+async def test_sync_respects_selected_stations(hass, mock_config_entry) -> None:
+    """Sync only creates subentries for selected stations."""
     mock_config_entry.add_to_hass(hass)
     hass.config_entries.async_update_entry(
         mock_config_entry,
-        options={CONF_SELECTED_PLANTS: ["101"]},
+        options={CONF_SELECTED_STATIONS: ["101"]},
     )
     entry = hass.config_entries.async_get_entry(mock_config_entry.entry_id)
     assert entry is not None
 
-    _, structural_changed, _ = await async_sync_plant_subentries(
+    _, structural_changed, _ = await async_sync_station_subentries(
         hass,
         entry,
         [
@@ -90,7 +93,7 @@ async def test_sync_respects_selected_plants(hass, mock_config_entry) -> None:
     assert structural_changed is True
     refreshed = hass.config_entries.async_get_entry(mock_config_entry.entry_id)
     assert refreshed is not None
-    assert set(build_plant_subentry_map(refreshed)) == {"101"}
+    assert set(build_station_subentry_map(refreshed)) == {"101"}
 
 
 def test_filter_stations_by_selection(config_data) -> None:
@@ -106,7 +109,7 @@ def test_filter_stations_by_selection(config_data) -> None:
     filtered_entry = MockConfigEntry(
         domain=DOMAIN,
         data=dict(config_data),
-        options={CONF_SELECTED_PLANTS: ["202"]},
+        options={CONF_SELECTED_STATIONS: ["202"]},
     )
     filtered = filter_stations_by_selection(stations, filtered_entry)
     assert len(filtered) == 1
@@ -122,13 +125,13 @@ async def test_sync_removes_stale_subentry(hass, mock_config_entry) -> None:
         entry,
         ConfigSubentry(
             data={CONF_STATION_ID: "999"},
-            subentry_type=SUBENTRY_TYPE_PLANT,
+            subentry_type=SUBENTRY_TYPE_STATION,
             title="Stale",
             unique_id="999",
         ),
     )
 
-    _, structural_changed, _ = await async_sync_plant_subentries(
+    _, structural_changed, _ = await async_sync_station_subentries(
         hass,
         entry,
         [Station(station_id="101", name="Home Plant")],
@@ -140,7 +143,7 @@ async def test_sync_removes_stale_subentry(hass, mock_config_entry) -> None:
 
 
 async def test_sync_updates_subentry_title(hass, config_data) -> None:
-    """Sync updates plant subentry titles when station names change."""
+    """Sync updates station subentry titles when station names change."""
     entry = MockConfigEntry(domain=DOMAIN, data=config_data)
     entry.add_to_hass(hass)
     current = hass.config_entries.async_get_entry(entry.entry_id)
@@ -149,13 +152,13 @@ async def test_sync_updates_subentry_title(hass, config_data) -> None:
         current,
         ConfigSubentry(
             data={CONF_STATION_ID: "101"},
-            subentry_type=SUBENTRY_TYPE_PLANT,
-            title="Old Plant Name",
+            subentry_type=SUBENTRY_TYPE_STATION,
+            title="Old Station Name",
             unique_id="101",
         ),
     )
 
-    _, structural_changed, metadata_changed = await async_sync_plant_subentries(
+    _, structural_changed, metadata_changed = await async_sync_station_subentries(
         hass,
         current,
         [Station(station_id="101", name="Home Plant")],
@@ -167,14 +170,14 @@ async def test_sync_updates_subentry_title(hass, config_data) -> None:
     assert refreshed.subentries[next(iter(refreshed.subentries))].title == "Home Plant"
 
 
-def test_register_plant_entities() -> None:
+def test_register_station_entities() -> None:
     """Register entities against subentries."""
     entry = MockConfigEntry(domain=DOMAIN, data={})
     entry.subentries = {
         "sub-101": ConfigSubentry(
             data={CONF_STATION_ID: "101"},
             subentry_id="sub-101",
-            subentry_type=SUBENTRY_TYPE_PLANT,
+            subentry_type=SUBENTRY_TYPE_STATION,
             title="Home",
             unique_id="101",
         )
@@ -184,7 +187,7 @@ def test_register_plant_entities() -> None:
     def async_add_entities(entities, config_subentry_id=None):
         added.append((entities, config_subentry_id))
 
-    count = register_plant_entities(
+    count = register_station_entities(
         entry=entry,
         coordinator_data={"101": object()},
         async_add_entities=async_add_entities,
@@ -194,43 +197,43 @@ def test_register_plant_entities() -> None:
     assert added[0][1] == "sub-101"
 
 
-def test_register_plant_entities_without_subentries(caplog) -> None:
-    """Log error when coordinator data exists but no plant subentries are configured."""
+def test_register_station_entities_without_subentries(caplog) -> None:
+    """Log error when coordinator data exists but no station subentries are configured."""
     entry = MockConfigEntry(domain=DOMAIN, data={})
-    count = register_plant_entities(
+    count = register_station_entities(
         entry=entry,
         coordinator_data={"101": object()},
         async_add_entities=lambda *args, **kwargs: None,
         build_fn=lambda station_id, data, subentry_id: [],
     )
     assert count == 0
-    assert "No plant subentries configured" in caplog.text
+    assert "No station subentries configured" in caplog.text
 
 
-def test_register_plant_entities_missing_subentry(caplog) -> None:
-    """Warn when coordinator data references an unknown plant subentry."""
+def test_register_station_entities_missing_subentry(caplog) -> None:
+    """Warn when coordinator data references an unknown station subentry."""
     entry = MockConfigEntry(domain=DOMAIN, data={})
     entry.subentries = {
         "sub-101": ConfigSubentry(
             data={CONF_STATION_ID: "101"},
             subentry_id="sub-101",
-            subentry_type=SUBENTRY_TYPE_PLANT,
+            subentry_type=SUBENTRY_TYPE_STATION,
             title="Home",
             unique_id="101",
         )
     }
-    count = register_plant_entities(
+    count = register_station_entities(
         entry=entry,
         coordinator_data={"202": object()},
         async_add_entities=lambda *args, **kwargs: None,
         build_fn=lambda station_id, data, subentry_id: ["entity"],
     )
     assert count == 0
-    assert "No plant subentry for station 202" in caplog.text
+    assert "No station subentry for station 202" in caplog.text
 
 
-def test_build_plant_subentry_map_skips_non_plants() -> None:
-    """Only plant subentries are included in the plant map."""
+def test_build_station_subentry_map_skips_non_stations() -> None:
+    """Only station subentries are included in the station map."""
     entry = MockConfigEntry(domain=DOMAIN, data={})
     entry.subentries = {
         "other": ConfigSubentry(
@@ -241,4 +244,4 @@ def test_build_plant_subentry_map_skips_non_plants() -> None:
             unique_id="999",
         )
     }
-    assert build_plant_subentry_map(entry) == {}
+    assert build_station_subentry_map(entry) == {}

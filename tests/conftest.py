@@ -23,7 +23,7 @@ from custom_components.deyecloud.const import (
     CONF_APP_SECRET,
     CONF_BASE_URL,
     CONF_PASSWORD,
-    CONF_SELECTED_PLANTS,
+    CONF_SELECTED_STATIONS,
     CONF_USERNAME,
     DEFAULT_BASE_URL_EU,
     DOMAIN,
@@ -90,9 +90,10 @@ def mock_config_entry(config_data: dict[str, str]):
     return MockConfigEntry(
         domain=DOMAIN,
         data=config_data,
-        options={CONF_SELECTED_PLANTS: ["101"]},
+        options={CONF_SELECTED_STATIONS: ["101"]},
         title="DeyeCloud - user@example.com",
         unique_id="user@example.com:personal",
+        version=2,
     )
 
 
@@ -174,8 +175,8 @@ async def setup_config_entry(hass, mock_config_entry) -> None:
 
     from homeassistant.config_entries import ConfigSubentry
 
-    from custom_components.deyecloud.const import CONF_STATION_ID, SUBENTRY_TYPE_PLANT
-    from custom_components.deyecloud.subentry_sync import build_plant_subentry_map
+    from custom_components.deyecloud.const import CONF_STATION_ID, SUBENTRY_TYPE_STATION
+    from custom_components.deyecloud.subentry_sync import build_station_subentry_map
 
     async def _sync_subentries(hass, entry, stations):
         current = hass.config_entries.async_get_entry(entry.entry_id)
@@ -186,7 +187,7 @@ async def setup_config_entry(hass, mock_config_entry) -> None:
                 current,
                 ConfigSubentry(
                     data={CONF_STATION_ID: "101"},
-                    subentry_type=SUBENTRY_TYPE_PLANT,
+                    subentry_type=SUBENTRY_TYPE_STATION,
                     title="Home Plant",
                     unique_id="101",
                 ),
@@ -194,11 +195,11 @@ async def setup_config_entry(hass, mock_config_entry) -> None:
             current = hass.config_entries.async_get_entry(entry.entry_id)
         if current is None:
             return {}, False, False
-        return build_plant_subentry_map(current), False, False
+        return build_station_subentry_map(current), False, False
 
     mock_config_entry.add_to_hass(hass)
     with patch(
-        "custom_components.deyecloud.subentry_sync.async_sync_plant_subentries",
+        "custom_components.deyecloud.subentry_sync.async_sync_station_subentries",
         AsyncMock(side_effect=_sync_subentries),
     ):
         assert await hass.config_entries.async_setup(mock_config_entry.entry_id)

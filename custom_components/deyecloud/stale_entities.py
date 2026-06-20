@@ -35,8 +35,8 @@ async def async_remove_stale_entities(
     coordinator = runtime.coordinator
     active_sns = {
         device.device_sn
-        for plant in coordinator.data.values()
-        for device in plant.devices
+        for station in coordinator.data.values()
+        for device in station.devices
     }
 
     entity_registry = er.async_get(hass)

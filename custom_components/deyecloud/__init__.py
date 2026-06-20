@@ -15,12 +15,13 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from .const import DOMAIN, ISSUE_API_UNAVAILABLE, ISSUE_AUTH_FAILED
 from .coordinator import DeyeCloudCoordinator
 from .data import DeyeCloudConfigEntry, DeyeCloudRuntimeData
+from .migration import async_migrate_entry
 
 if TYPE_CHECKING:
     from homeassistant.helpers.typing import ConfigType
 
 
-__all__ = ["DOMAIN", "PLATFORMS"]
+__all__ = ["DOMAIN", "PLATFORMS", "async_migrate_entry"]
 
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -44,7 +45,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeyeCloudConfigEntry) ->
         apply_measure_point_cache_to_coordinator,
         async_refresh_measure_point_cache,
     )
-    from .subentry_sync import async_sync_plant_subentries, build_plant_subentry_map
+    from .subentry_sync import async_sync_station_subentries, build_station_subentry_map
 
     client = DeyeCloudApiClient(
         session=async_get_clientsession(hass),
@@ -93,23 +94,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeyeCloudConfigEntry) ->
     ir.async_delete_issue(hass, DOMAIN, ISSUE_API_UNAVAILABLE)
 
     all_devices = [
-        device for plant in coordinator.data.values() for device in plant.devices
+        device for station in coordinator.data.values() for device in station.devices
     ]
 
     await async_refresh_measure_point_cache(entry, all_devices)
 
     apply_measure_point_cache_to_coordinator(entry)
 
-    stations = [plant.info for plant in coordinator.data.values()]
+    stations = [station.info for station in coordinator.data.values()]
 
-    had_plant_subentries = bool(build_plant_subentry_map(entry))
-    _, structural_changed, _ = await async_sync_plant_subentries(hass, entry, stations)
+    had_station_subentries = bool(build_station_subentry_map(entry))
+    _, structural_changed, _ = await async_sync_station_subentries(
+        hass, entry, stations
+    )
 
     refreshed_entry = hass.config_entries.async_get_entry(entry.entry_id)
     if refreshed_entry is not None:
         entry = refreshed_entry
 
-    if structural_changed and had_plant_subentries:
+    if structural_changed and had_station_subentries:
         hass.config_entries.async_schedule_reload(entry.entry_id)
 
         return True
@@ -178,14 +181,14 @@ async def _async_run_coordinator_listener(
         prune_measure_point_cache,
     )
     from .stale_entities import async_remove_stale_entities
-    from .subentry_sync import async_sync_plant_subentries
+    from .subentry_sync import async_sync_station_subentries
 
     runtime = entry.runtime_data
     coordinator_data = runtime.coordinator.data or {}
 
     if coordinator_data:
-        stations = [plant.info for plant in coordinator_data.values()]
-        _, structural_changed, _ = await async_sync_plant_subentries(
+        stations = [station.info for station in coordinator_data.values()]
+        _, structural_changed, _ = await async_sync_station_subentries(
             hass, entry, stations
         )
         if structural_changed:
@@ -193,7 +196,9 @@ async def _async_run_coordinator_listener(
             return
 
         all_devices = [
-            device for plant in coordinator_data.values() for device in plant.devices
+            device
+            for station in coordinator_data.values()
+            for device in station.devices
         ]
         await async_refresh_measure_point_cache(entry, all_devices)
         prune_measure_point_cache(entry)

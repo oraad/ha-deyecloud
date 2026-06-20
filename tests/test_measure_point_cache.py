@@ -9,8 +9,8 @@ from custom_components.deyecloud.api_types import (
     Device,
     DeviceData,
     MeasurePoint,
-    PlantCoordinatorData,
     Station,
+    StationCoordinatorData,
     StationData,
 )
 from custom_components.deyecloud.data import DeyeCloudRuntimeData
@@ -103,7 +103,7 @@ async def test_refresh_measure_point_cache_caches_permanent_failures(
 
 def test_iter_device_measure_specs_union() -> None:
     """Union includes catalog-only and latest-only keys."""
-    plant = PlantCoordinatorData(
+    station = StationCoordinatorData(
         info=Station(station_id="101", name="Home"),
         devices=[Device(device_sn="INV123", device_type="INVERTER", station_id="101")],
         device_data={
@@ -125,7 +125,7 @@ def test_iter_device_measure_specs_union() -> None:
         station_latest=StationData(station_id="101", data={}),
     )
 
-    specs = iter_device_measure_specs("INV123", plant)
+    specs = iter_device_measure_specs("INV123", station)
     keys = [key for key, _unit in specs]
     assert keys == ["SOC", "TotalGridPower"]
 
@@ -144,13 +144,13 @@ async def test_build_entities_from_catalog_only_key(
     )
     await coordinator.async_refresh()
 
-    plant = coordinator.data["101"]
-    plant.measure_points["INV123"] = [
+    station = coordinator.data["101"]
+    station.measure_points["INV123"] = [
         MeasurePoint(key="FirmwareVersion", name="Firmware", unit=None),
-        *plant.measure_points.get("INV123", []),
+        *station.measure_points.get("INV123", []),
     ]
 
-    entities = _build_station_entities(coordinator, "101", plant, "sub-101")
+    entities = _build_station_entities(coordinator, "101", station, "sub-101")
     firmware_entities = [
         entity for entity in entities if entity.unique_id.endswith("_firmware_version")
     ]

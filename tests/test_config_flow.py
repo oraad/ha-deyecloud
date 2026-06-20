@@ -12,13 +12,13 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.deyecloud.api_types import Station
 from custom_components.deyecloud.config_flow import (
     DeyeCloudConfigFlow,
-    PlantSubentryFlowHandler,
+    StationSubentryFlowHandler,
 )
 from custom_components.deyecloud.const import (
     CONF_APP_ID,
     CONF_APP_SECRET,
     CONF_BASE_URL,
-    CONF_SELECTED_PLANTS,
+    CONF_SELECTED_STATIONS,
     CONF_USERNAME,
     DEFAULT_BASE_URL_EU,
     DOMAIN,
@@ -44,7 +44,7 @@ USER_INPUT = {
 
 
 async def test_user_flow_success(hass) -> None:
-    """Test successful user flow with plant selection."""
+    """Test successful user flow with station selection."""
     with patch(
         "custom_components.deyecloud.config_flow._async_validate_account",
         AsyncMock(return_value=FLOW_STATIONS),
@@ -56,7 +56,7 @@ async def test_user_flow_success(hass) -> None:
         )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "plant_select"
+    assert result["step_id"] == "station_select"
 
     with patch(
         "custom_components.deyecloud.config_flow._async_validate_account",
@@ -64,16 +64,16 @@ async def test_user_flow_success(hass) -> None:
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={CONF_SELECTED_PLANTS: ["101"]},
+            user_input={CONF_SELECTED_STATIONS: ["101"]},
         )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == "DeyeCloud - user@example.com"
-    assert result["options"][CONF_SELECTED_PLANTS] == ["101"]
+    assert result["options"][CONF_SELECTED_STATIONS] == ["101"]
 
 
-async def test_user_flow_single_plant_auto_select(hass) -> None:
-    """Test user flow skips selection when only one plant exists."""
+async def test_user_flow_single_station_auto_select(hass) -> None:
+    """Test user flow skips selection when only one station exists."""
     with patch(
         "custom_components.deyecloud.config_flow._async_validate_account",
         AsyncMock(return_value=[FLOW_STATIONS[0]]),
@@ -85,7 +85,7 @@ async def test_user_flow_single_plant_auto_select(hass) -> None:
         )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["options"][CONF_SELECTED_PLANTS] == ["101"]
+    assert result["options"][CONF_SELECTED_STATIONS] == ["101"]
 
 
 async def test_user_flow_auth_failed(hass) -> None:
@@ -237,8 +237,8 @@ async def test_options_credentials(hass, mock_config_entry) -> None:
     assert result["type"] == FlowResultType.CREATE_ENTRY
 
 
-async def test_options_plants(hass, mock_config_entry) -> None:
-    """Test options flow plant selection."""
+async def test_options_stations(hass, mock_config_entry) -> None:
+    """Test options flow station selection."""
     mock_config_entry.add_to_hass(hass)
     with patch(
         "custom_components.deyecloud.config_flow._async_fetch_stations",
@@ -249,21 +249,21 @@ async def test_options_plants(hass, mock_config_entry) -> None:
         )
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
-            user_input={"next_step_id": "plants"},
+            user_input={"next_step_id": "stations"},
         )
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
-            user_input={CONF_SELECTED_PLANTS: ["202"]},
+            user_input={CONF_SELECTED_STATIONS: ["202"]},
         )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     entry = hass.config_entries.async_get_entry(mock_config_entry.entry_id)
     assert entry is not None
-    assert entry.options[CONF_SELECTED_PLANTS] == ["202"]
+    assert entry.options[CONF_SELECTED_STATIONS] == ["202"]
 
 
 async def test_supported_subentry_types(hass, mock_config_entry) -> None:
-    """Test plant subentry type is always exposed."""
+    """Test station subentry type is always exposed."""
     assert DeyeCloudConfigFlow.async_get_supported_subentry_types(
         mock_config_entry
-    ) == {"plant": PlantSubentryFlowHandler}
+    ) == {"station": StationSubentryFlowHandler}

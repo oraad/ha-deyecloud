@@ -49,8 +49,8 @@ async def async_get_config_entry_diagnostics(
                 "last_update_success": coordinator.last_update_success,
                 "stations": list(coordinator.data.keys()),
                 "device_counts": {
-                    station_id: len(plant.devices)
-                    for station_id, plant in coordinator.data.items()
+                    station_id: len(station.devices)
+                    for station_id, station in coordinator.data.items()
                 },
             },
             "client": {

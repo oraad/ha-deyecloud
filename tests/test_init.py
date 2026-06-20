@@ -63,7 +63,7 @@ async def test_setup_schedules_reload_when_subentries_change(
 
     from homeassistant.config_entries import ConfigSubentry
 
-    from custom_components.deyecloud.const import CONF_STATION_ID, SUBENTRY_TYPE_PLANT
+    from custom_components.deyecloud.const import CONF_STATION_ID, SUBENTRY_TYPE_STATION
 
     mock_config_entry.add_to_hass(hass)
     entry = hass.config_entries.async_get_entry(mock_config_entry.entry_id)
@@ -72,8 +72,8 @@ async def test_setup_schedules_reload_when_subentries_change(
         entry,
         ConfigSubentry(
             data=MappingProxyType({CONF_STATION_ID: "999"}),
-            subentry_type=SUBENTRY_TYPE_PLANT,
-            title="Stale Plant",
+            subentry_type=SUBENTRY_TYPE_STATION,
+            title="Stale Station",
             unique_id="999",
         ),
     )
@@ -156,18 +156,18 @@ async def test_coordinator_listener_discovers_new_sensor(
     await setup_config_entry(hass, mock_config_entry)
 
     runtime = mock_config_entry.runtime_data
-    plant = runtime.coordinator.data["101"]
-    plant.device_data["INV123"] = DeviceData(
+    station = runtime.coordinator.data["101"]
+    station.device_data["INV123"] = DeviceData(
         device_sn="INV123",
         device_type="INVERTER",
         device_state=1,
         data_list=[
-            *plant.device_data["INV123"].data_list,
+            *station.device_data["INV123"].data_list,
             DataPoint(key="BatteryPower", value="500", unit="W"),
         ],
     )
-    plant.measure_points["INV123"] = [
-        *plant.measure_points.get("INV123", []),
+    station.measure_points["INV123"] = [
+        *station.measure_points.get("INV123", []),
         MeasurePoint(key="BatteryPower", name="Battery power", unit="W"),
     ]
 
@@ -211,7 +211,7 @@ async def test_listener_queues_trailing_pass_when_polls_overlap(
         return {}, False, False
 
     with patch(
-        "custom_components.deyecloud.subentry_sync.async_sync_plant_subentries",
+        "custom_components.deyecloud.subentry_sync.async_sync_station_subentries",
         side_effect=slow_sync,
     ):
         first = asyncio.create_task(
@@ -255,3 +255,78 @@ async def test_listener_removes_stale_when_coordinator_data_empty(
         and "INV123" in entity.unique_id
     ]
     assert not inv_entities_after
+
+
+async def test_migrate_entry_renames_plant_subentries_and_entities(hass) -> None:
+    """v1 entries migrate subentry type, options key, and entity unique ids."""
+    from types import MappingProxyType
+
+    from homeassistant.config_entries import ConfigSubentry
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.deyecloud.const import (
+        CONF_SELECTED_STATIONS,
+        CONF_STATION_ID,
+        DOMAIN,
+    )
+    from custom_components.deyecloud.migration import async_migrate_entry
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={"username": "user@example.com"},
+        options={"selected_plants": ["101"]},
+        version=1,
+    )
+    entry.add_to_hass(hass)
+    current = hass.config_entries.async_get_entry(entry.entry_id)
+    assert current is not None
+    hass.config_entries.async_add_subentry(
+        current,
+        ConfigSubentry(
+            data=MappingProxyType({CONF_STATION_ID: "101"}),
+            subentry_type="plant",
+            title="Home Plant",
+            unique_id="101",
+        ),
+    )
+
+    registry = er.async_get(hass)
+    registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "plant_101_dev_INV123_soc",
+        config_entry=entry,
+    )
+    registry.async_get_or_create(
+        "binary_sensor",
+        DOMAIN,
+        "already_station_101_dev_INV123_online",
+        config_entry=entry,
+    )
+
+    assert await async_migrate_entry(hass, entry)
+
+    migrated = hass.config_entries.async_get_entry(entry.entry_id)
+    assert migrated is not None
+    assert migrated.version == 2
+    assert migrated.options[CONF_SELECTED_STATIONS] == ["101"]
+    assert "selected_plants" not in migrated.options
+    assert len(migrated.subentries) == 1
+    subentry = next(iter(migrated.subentries.values()))
+    assert subentry.subentry_type == "station"
+    assert subentry.data[CONF_STATION_ID] == "101"
+
+    entity = registry.async_get("sensor.deyecloud_plant_101_dev_inv123_soc")
+    assert entity is not None
+    assert entity.unique_id == "station_101_dev_INV123_soc"
+
+
+async def test_migrate_entry_v2_is_noop(hass, mock_config_entry) -> None:
+    """Already migrated entries are left unchanged."""
+    from custom_components.deyecloud.migration import async_migrate_entry
+
+    mock_config_entry.add_to_hass(hass)
+    assert await async_migrate_entry(hass, mock_config_entry)
+    entry = hass.config_entries.async_get_entry(mock_config_entry.entry_id)
+    assert entry is not None
+    assert entry.version == 2

@@ -49,11 +49,11 @@
           "company_id": "Company ID (optional)"
         }
       },
-      "plant_select": {
-        "title": "Select plants",
-        "description": "Choose which DeyeCloud plants to load into Home Assistant.",
+      "station_select": {
+        "title": "Select stations",
+        "description": "Choose which DeyeCloud stations to load into Home Assistant.",
         "data": {
-          "selected_plants": "Plants"
+          "selected_stations": "Stations"
         }
       },
       "credentials": {
@@ -71,55 +71,55 @@
     "error": {
       "auth_failed": "Authentication failed. Check your credentials and app keys.",
       "cannot_connect": "Could not connect to DeyeCloud.",
-      "no_stations_found": "Authentication succeeded but no plants were found.",
-      "no_plants_selected": "Select at least one plant to load.",
+      "no_stations_found": "Authentication succeeded but no stations were found.",
+      "no_stations_selected": "Select at least one station to load.",
       "unknown": "Unexpected error while connecting to DeyeCloud.",
-      "station_not_found": "The selected plant could not be found."
+      "station_not_found": "The selected station could not be found."
     },
     "abort": {
       "already_configured": "This DeyeCloud account is already configured.",
       "reauth_successful": "Re-authentication was successful.",
       "reconfigure_successful": "Reconfiguration was successful.",
-      "all_plants_configured": "All plants from your account are already configured."
+      "all_stations_configured": "All stations from your account are already configured."
     }
   },
   "options": {
     "step": {
       "init": {
         "menu_options": {
-          "plants": "Select plants",
+          "stations": "Select stations",
           "credentials": "Update credentials"
         }
       },
-      "plants": {
-        "title": "Select plants",
-        "description": "Choose which DeyeCloud plants to load into Home Assistant.",
+      "stations": {
+        "title": "Select stations",
+        "description": "Choose which DeyeCloud stations to load into Home Assistant.",
         "data": {
-          "selected_plants": "Plants"
+          "selected_stations": "Stations"
         }
       }
     }
   },
   "config_subentries": {
-    "plant": {
-      "entry_type": "Plant",
+    "station": {
+      "entry_type": "Station",
       "initiate_flow": {
-        "user": "Add plant",
-        "reconfigure": "Reconfigure plant"
+        "user": "Add station",
+        "reconfigure": "Reconfigure station"
       },
       "step": {
         "user": {
-          "title": "Add plant",
-          "description": "Select a DeyeCloud plant to expose as a sub-entry.",
+          "title": "Add station",
+          "description": "Select a DeyeCloud station to expose as a sub-entry.",
           "data": {
-            "station_id": "Plant"
+            "station_id": "Station"
           }
         }
       },
       "abort": {
-        "all_plants_configured": "All plants are already configured.",
-        "auth_failed": "Authentication failed while loading plants.",
-        "station_not_found": "The selected plant could not be found."
+        "all_stations_configured": "All stations are already configured.",
+        "auth_failed": "Authentication failed while loading stations.",
+        "station_not_found": "The selected station could not be found."
       }
     }
   },

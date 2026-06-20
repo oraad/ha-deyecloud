@@ -45,7 +45,7 @@ def _parse_station(raw: dict[str, Any]) -> Station | None:
     station_id = get_station_id(raw)
     if not station_id:
         return None
-    name = raw.get("name") or raw.get("stationName") or f"Plant {station_id}"
+    name = raw.get("name") or raw.get("stationName") or f"Station {station_id}"
     return Station(station_id=station_id, name=str(name), raw=raw)
 
 

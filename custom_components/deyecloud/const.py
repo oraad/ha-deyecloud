@@ -14,9 +14,9 @@ CONF_APP_SECRET = "app_secret"
 CONF_BASE_URL = "base_url"
 CONF_COMPANY_ID = "company_id"
 CONF_STATION_ID = "station_id"
-CONF_SELECTED_PLANTS = "selected_plants"
+CONF_SELECTED_STATIONS = "selected_stations"
 
-SUBENTRY_TYPE_PLANT = "plant"
+SUBENTRY_TYPE_STATION = "station"
 
 DEFAULT_BASE_URL_EU = "https://eu1-developer.deyecloud.com/v1.0"
 DEFAULT_BASE_URL_US = "https://us1-developer.deyecloud.com/v1.0"

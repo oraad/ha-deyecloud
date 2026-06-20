@@ -1,6 +1,6 @@
 # DeyeCloud Home Assistant Integration
 
-Monitor DeyeCloud plants and devices in Home Assistant using the official DeyeCloud OpenAPI.
+Monitor DeyeCloud stations and devices in Home Assistant using the official DeyeCloud OpenAPI.
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![homeassistant](https://img.shields.io/badge/Home%20Assistant-2026.3.2+-blue.svg)](https://www.home-assistant.io/)
@@ -14,10 +14,10 @@ Requires [My Home Assistant](https://my.home-assistant.io/) linked to your insta
 
 ## Features
 
-- One config sub-entry per plant (station)
-- All devices belonging to each plant are grouped under that sub-entry
+- One config sub-entry per station
+- All devices belonging to each station are grouped under that sub-entry
 - Dynamic sensors from the union of cached `/device/measurePoints` catalogs and `/device/latest` telemetry
-- Plant-level sensors from station latest data
+- Station-level sensors from station latest data
 - Connectivity binary sensors per device
 - Re-authentication and reconfiguration flows
 - Diagnostics with credential redaction
@@ -72,15 +72,16 @@ Start setup with the [![Set up](https://my.home-assistant.io/badges/config_flow_
    - App ID and App Secret from the developer portal
    - API region (Europe/Asia-Pacific or Americas)
    - Optional company ID for installer/business accounts
-4. The integration validates credentials and creates one plant sub-entry per selected station.
-5. During setup, choose which plants to load. Change this later via **Configure → Select plants**.
+4. The integration validates credentials and creates one station sub-entry per selected station.
+5. During setup, choose which stations to load. Change this later via **Configure → Select stations**.
 
 ## Entity naming
 
 Entities use `has_entity_name = true` and stable unique IDs:
 
-- Device telemetry: `plant_{station_id}_dev_{serial}_{measure_key}`
-- Plant metrics: `plant_{station_id}_station_{metric}`
+- Device telemetry: `station_{station_id}_dev_{serial}_{measure_key}`
+- Station metrics: `station_{station_id}_station_{metric}`
+- Child device names show the device type only (e.g. `Inverter`); when multiple devices share a type in one station, the serial is appended (e.g. `Battery 05403000CA180191`)
 - Friendly names use translation keys where available, with API catalog names as fallback
 - Device sensors expose a `collection_time` attribute when the API provides it
 
@@ -91,7 +92,7 @@ Entities use `has_entity_name = true` and stable unique IDs:
 Telemetry sources:
 
 - **Inverters** — full sensor catalogs from `/device/measurePoints` plus live values from `/device/latest`
-- **Plant metrics** — `/station/latest` fields such as `generationPower`, `consumptionPower`, `batterySOC`
+- **Station metrics** — `/station/latest` fields such as `generationPower`, `consumptionPower`, `batterySOC`
 - **Batteries, collectors, optimizers, meters** — typically expose an **Online** binary sensor only; DeyeCloud often returns `device not supported` for `/device/measurePoints` on these types
 
 ## Known limitations
@@ -104,10 +105,10 @@ Telemetry sources:
 ## Troubleshooting
 
 - **Authentication failed**: verify username/password, app credentials, and region (Europe/Asia-Pacific vs Americas).
-- **No plants found**: confirm the account has stations and company ID is set for business accounts.
-- **Plants appear but no devices or entities**: reload the integration after upgrading; check **Diagnostics** for `device_counts`. On first install, plant subentries must finish syncing before entities are created.
+- **No stations found**: confirm the account has stations and company ID is set for business accounts.
+- **Stations appear but no devices or entities**: reload the integration after upgrading; check **Diagnostics** for `device_counts`. On first install, station subentries must finish syncing before entities are created.
 - **Measure point catalog warnings**: expected for batteries, collectors, and optimizers (`device not supported` or `no upload records found`). Inverter telemetry should still appear.
-- **Missing plant-level sensors**: confirm `/station/latest` returns fields like `generationPower` and `batterySOC` for the plant in the DeyeCloud app.
+- **Missing station-level sensors**: confirm `/station/latest` returns fields like `generationPower` and `batterySOC` for the station in the DeyeCloud app.
 - **Entities unavailable**: check diagnostics and repair issues in Settings → Repairs.
 
 ## Removal

@@ -33,14 +33,14 @@ from .const import (
     CONF_BASE_URL,
     CONF_COMPANY_ID,
     CONF_PASSWORD,
-    CONF_SELECTED_PLANTS,
+    CONF_SELECTED_STATIONS,
     CONF_STATION_ID,
     CONF_USERNAME,
     DEFAULT_BASE_URL_EU,
     DOMAIN,
     ISSUE_AUTH_FAILED,
     LOGGER,
-    SUBENTRY_TYPE_PLANT,
+    SUBENTRY_TYPE_STATION,
 )
 from .exceptions import (
     DeyeCloudAuthError,
@@ -128,7 +128,7 @@ async def _async_validate_account(hass, user_input: dict[str, Any]) -> list[Stat
     return stations
 
 
-def _plant_select_schema(
+def _station_select_schema(
     stations: list[Station],
     *,
     default: list[str] | None = None,
@@ -141,7 +141,7 @@ def _plant_select_schema(
     return vol.Schema(
         {
             vol.Required(
-                CONF_SELECTED_PLANTS,
+                CONF_SELECTED_STATIONS,
                 default=selected_default,
             ): SelectSelector(
                 SelectSelectorConfig(
@@ -154,14 +154,14 @@ def _plant_select_schema(
     )
 
 
-def _normalize_selected_plants(selected: list[str]) -> list[str]:
+def _normalize_selected_stations(selected: list[str]) -> list[str]:
     return sorted({str(station_id) for station_id in selected if station_id})
 
 
 class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for DeyeCloud."""
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize config flow state."""
@@ -181,7 +181,7 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         cls,
         config_entry: DeyeCloudConfigEntry,
     ) -> dict[str, type[ConfigSubentryFlow]]:
-        return {SUBENTRY_TYPE_PLANT: PlantSubentryFlowHandler}
+        return {SUBENTRY_TYPE_STATION: StationSubentryFlowHandler}
 
     async def async_step_user(
         self,
@@ -215,10 +215,10 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                         title=f"DeyeCloud - {user_input[CONF_USERNAME]}",
                         data=user_input,
                         options={
-                            CONF_SELECTED_PLANTS: [stations[0].station_id],
+                            CONF_SELECTED_STATIONS: [stations[0].station_id],
                         },
                     )
-                return await self.async_step_plant_select()
+                return await self.async_step_station_select()
 
         integration = async_get_loaded_integration(self.hass, DOMAIN)
         return self.async_show_form(
@@ -233,32 +233,32 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_plant_select(
+    async def async_step_station_select(
         self,
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
-        """Let the user choose which plants to load."""
+        """Let the user choose which stations to load."""
         if self._flow_user_input is None:
             return self.async_abort(reason="unknown")
 
         errors: dict[str, str] = {}
         if user_input is not None:
-            selected = _normalize_selected_plants(user_input[CONF_SELECTED_PLANTS])
+            selected = _normalize_selected_stations(user_input[CONF_SELECTED_STATIONS])
             valid_ids = {station.station_id for station in self._flow_stations}
             if not selected:
-                errors["base"] = "no_plants_selected"
+                errors["base"] = "no_stations_selected"
             elif any(station_id not in valid_ids for station_id in selected):
                 errors["base"] = "station_not_found"
             else:
                 return self.async_create_entry(
                     title=f"DeyeCloud - {self._flow_user_input[CONF_USERNAME]}",
                     data=self._flow_user_input,
-                    options={CONF_SELECTED_PLANTS: selected},
+                    options={CONF_SELECTED_STATIONS: selected},
                 )
 
         return self.async_show_form(
-            step_id="plant_select",
-            data_schema=_plant_select_schema(self._flow_stations),
+            step_id="station_select",
+            data_schema=_station_select_schema(self._flow_stations),
             errors=errors,
         )
 
@@ -339,8 +339,8 @@ class DeyeCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
-class PlantSubentryFlowHandler(ConfigSubentryFlow):
-    """Handle manual plant subentry management."""
+class StationSubentryFlowHandler(ConfigSubentryFlow):
+    """Handle manual station subentry management."""
 
     async def async_step_user(
         self,
@@ -351,7 +351,7 @@ class PlantSubentryFlowHandler(ConfigSubentryFlow):
         configured_station_ids = {
             str(subentry.data.get(CONF_STATION_ID))
             for subentry in entry.subentries.values()
-            if subentry.subentry_type == SUBENTRY_TYPE_PLANT
+            if subentry.subentry_type == SUBENTRY_TYPE_STATION
             and subentry.data.get(CONF_STATION_ID)
         }
 
@@ -393,7 +393,7 @@ class PlantSubentryFlowHandler(ConfigSubentryFlow):
                 )
 
         if not errors and not available:
-            return self.async_abort(reason="all_plants_configured")
+            return self.async_abort(reason="all_stations_configured")
 
         return self.async_show_form(
             step_id="user",
@@ -419,7 +419,7 @@ class PlantSubentryFlowHandler(ConfigSubentryFlow):
             client = _build_client(self.hass, dict(entry.data))
             stations = await client.async_get_stations()
         except DeyeCloudError as exc:
-            LOGGER.warning("Plant reconfigure failed: %s", exc)
+            LOGGER.warning("Station reconfigure failed: %s", exc)
             return self.async_abort(reason="auth_failed")
 
         station = next(
@@ -446,18 +446,18 @@ class DeyeCloudOptionsFlowHandler(OptionsFlowWithReload):
         if user_input is not None:
             if user_input["next_step_id"] == "credentials":
                 return await self.async_step_credentials()
-            if user_input["next_step_id"] == "plants":
-                return await self.async_step_plants()
+            if user_input["next_step_id"] == "stations":
+                return await self.async_step_stations()
         return self.async_show_menu(
             step_id="init",
-            menu_options=["plants", "credentials"],
+            menu_options=["stations", "credentials"],
         )
 
-    async def async_step_plants(
+    async def async_step_stations(
         self,
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
-        """Update which plants are loaded."""
+        """Update which stations are loaded."""
         errors: dict[str, str] = {}
 
         try:
@@ -475,17 +475,17 @@ class DeyeCloudOptionsFlowHandler(OptionsFlowWithReload):
             stations = []
 
         if user_input is not None:
-            selected = _normalize_selected_plants(user_input[CONF_SELECTED_PLANTS])
+            selected = _normalize_selected_stations(user_input[CONF_SELECTED_STATIONS])
             valid_ids = {station.station_id for station in stations}
             if not selected:
-                errors["base"] = "no_plants_selected"
+                errors["base"] = "no_stations_selected"
             elif any(station_id not in valid_ids for station_id in selected):
                 errors["base"] = "station_not_found"
             else:
                 return self.async_create_entry(
                     data={
                         **dict(self.config_entry.options),
-                        CONF_SELECTED_PLANTS: selected,
+                        CONF_SELECTED_STATIONS: selected,
                     }
                 )
 
@@ -497,8 +497,8 @@ class DeyeCloudOptionsFlowHandler(OptionsFlowWithReload):
             current = sorted(selected)
 
         return self.async_show_form(
-            step_id="plants",
-            data_schema=_plant_select_schema(stations, default=current),
+            step_id="stations",
+            data_schema=_station_select_schema(stations, default=current),
             errors=errors,
         )
 

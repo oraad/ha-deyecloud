@@ -68,8 +68,8 @@ class StationData:
 
 
 @dataclass(slots=True)
-class PlantCoordinatorData:
-    """Coordinator payload for one plant."""
+class StationCoordinatorData:
+    """Coordinator payload for one station."""
 
     info: Station
     devices: list[Device]
@@ -78,4 +78,4 @@ class PlantCoordinatorData:
     station_latest: StationData | None = None
 
 
-CoordinatorData = dict[str, PlantCoordinatorData]
+CoordinatorData = dict[str, StationCoordinatorData]

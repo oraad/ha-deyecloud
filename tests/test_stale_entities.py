@@ -12,12 +12,12 @@ from tests.conftest import setup_config_entry
 
 def test_device_sn_from_unique_id() -> None:
     """Parse device serial numbers from entity unique ids."""
-    assert _device_sn_from_unique_id("plant_101_dev_INV123_soc", "sensor") == "INV123"
+    assert _device_sn_from_unique_id("station_101_dev_INV123_soc", "sensor") == "INV123"
     assert (
-        _device_sn_from_unique_id("plant_101_dev_INV123_online", "binary_sensor")
+        _device_sn_from_unique_id("station_101_dev_INV123_online", "binary_sensor")
         == "INV123"
     )
-    assert _device_sn_from_unique_id("plant_101_station_generation", "sensor") is None
+    assert _device_sn_from_unique_id("station_101_station_generation", "sensor") is None
 
 
 async def test_stale_removal_after_three_polls(

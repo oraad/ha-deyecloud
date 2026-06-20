@@ -6,7 +6,7 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING
 
-from .api_types import DataPoint, Device, MeasurePoint, PlantCoordinatorData
+from .api_types import DataPoint, Device, MeasurePoint, StationCoordinatorData
 from .exceptions import DeyeCloudError
 
 if TYPE_CHECKING:
@@ -29,14 +29,14 @@ def _is_permanent_measure_point_error(error: DeyeCloudError) -> bool:
 
 def iter_device_measure_specs(
     device_sn: str,
-    plant_data: PlantCoordinatorData,
+    station_data: StationCoordinatorData,
 ) -> list[tuple[str, str | None]]:
     """Return union of catalog and latest measure keys with resolved units."""
     catalog = {
-        point.key: point for point in plant_data.measure_points.get(device_sn, [])
+        point.key: point for point in station_data.measure_points.get(device_sn, [])
     }
     latest_points: dict[str, DataPoint] = {}
-    device_data = plant_data.device_data.get(device_sn)
+    device_data = station_data.device_data.get(device_sn)
     if device_data:
         latest_points = {point.key: point for point in device_data.data_list}
 
@@ -54,12 +54,12 @@ def iter_device_measure_specs(
 
 
 def apply_measure_point_cache_to_coordinator(entry: DeyeCloudConfigEntry) -> None:
-    """Copy runtime catalog cache into coordinator plant payloads."""
+    """Copy runtime catalog cache into coordinator station payloads."""
     cache = entry.runtime_data.measure_point_cache
-    for plant in entry.runtime_data.coordinator.data.values():
-        plant.measure_points = {
+    for station in entry.runtime_data.coordinator.data.values():
+        station.measure_points = {
             device.device_sn: list(cache.get(device.device_sn, []))
-            for device in plant.devices
+            for device in station.devices
         }
 
 
@@ -67,8 +67,8 @@ def prune_measure_point_cache(entry: DeyeCloudConfigEntry) -> None:
     """Drop catalog entries for devices no longer present."""
     active_sns = {
         device.device_sn
-        for plant in entry.runtime_data.coordinator.data.values()
-        for device in plant.devices
+        for station in entry.runtime_data.coordinator.data.values()
+        for device in station.devices
     }
     cache = entry.runtime_data.measure_point_cache
     for device_sn in list(cache):

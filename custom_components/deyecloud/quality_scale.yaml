@@ -72,4 +72,4 @@ rules:
     comment: config_flow.py uses mypy ignore_errors; HA stub gaps remain for platform callbacks.
   config-flow-test-coverage:
     status: todo
-    comment: config_flow.py re-included in coverage; expand tests for PlantSubentryFlowHandler and options paths.
+    comment: config_flow.py re-included in coverage; expand tests for StationSubentryFlowHandler and options paths.

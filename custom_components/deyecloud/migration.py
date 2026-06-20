@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
@@ -17,7 +19,7 @@ _LEGACY_UNIQUE_ID_PREFIX = "plant_"
 _STATION_UNIQUE_ID_PREFIX = "station_"
 
 
-def _migrate_options(options: dict) -> dict:
+def _migrate_options(options: dict[str, Any]) -> dict[str, Any]:
     migrated = dict(options)
     if _LEGACY_OPTIONS_KEY in migrated:
         migrated[CONF_SELECTED_STATIONS] = migrated.pop(_LEGACY_OPTIONS_KEY)

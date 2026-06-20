@@ -15,6 +15,16 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 _MEASURE_POINT_FETCH_CONCURRENCY = 5
+_PERMANENT_MEASURE_POINT_ERRORS = (
+    "device not supported",
+    "device no upload records found",
+)
+
+
+def _is_permanent_measure_point_error(error: DeyeCloudError) -> bool:
+    """Return True when the API will never expose a measurePoints catalog."""
+    message = str(error).lower()
+    return any(item in message for item in _PERMANENT_MEASURE_POINT_ERRORS)
 
 
 def iter_device_measure_specs(
@@ -98,11 +108,19 @@ async def async_refresh_measure_point_cache(
     for device, result in zip(missing, results, strict=True):
         if isinstance(result, BaseException):
             if isinstance(result, DeyeCloudError):
-                _LOGGER.warning(
-                    "Measure point catalog fetch failed for %s: %s",
-                    device.device_sn,
-                    result,
-                )
+                if _is_permanent_measure_point_error(result):
+                    _LOGGER.debug(
+                        "Measure point catalog unavailable for %s: %s",
+                        device.device_sn,
+                        result,
+                    )
+                    cache[device.device_sn] = []
+                else:
+                    _LOGGER.warning(
+                        "Measure point catalog fetch failed for %s: %s",
+                        device.device_sn,
+                        result,
+                    )
             else:
                 _LOGGER.exception(
                     "Unexpected error fetching measure points for %s",

@@ -88,18 +88,26 @@ Entities use `has_entity_name = true` and stable unique IDs:
 
 `INVERTER`, `MICRO_INVERTER`, `COLLECTOR`, `BATTERY`, `MECD`, `METER`, `RELAY_BOX`, `OPTIMIZER`, `PV_MODULE`
 
-Telemetry is discovered from cached `/device/measurePoints` catalogs (fetched when a device is first seen) and live values from `/device/latest`.
+Telemetry sources:
+
+- **Inverters** — full sensor catalogs from `/device/measurePoints` plus live values from `/device/latest`
+- **Plant metrics** — `/station/latest` fields such as `generationPower`, `consumptionPower`, `batterySOC`
+- **Batteries, collectors, optimizers, meters** — typically expose an **Online** binary sensor only; DeyeCloud often returns `device not supported` for `/device/measurePoints` on these types
 
 ## Known limitations
 
 - DeyeCloud typically updates telemetry every 3–5 minutes; the integration polls every 180 seconds (3 minutes).
 - `/device/latest` accepts up to 10 device serial numbers per request.
 - Some diagnostic measure points are disabled by default to reduce entity noise.
+- `/device/measurePoints` is not available for all device types; permanent API failures are cached and logged at debug level.
 
 ## Troubleshooting
 
-- **Authentication failed**: verify username/password, app credentials, and region.
+- **Authentication failed**: verify username/password, app credentials, and region (Europe/Asia-Pacific vs Americas).
 - **No plants found**: confirm the account has stations and company ID is set for business accounts.
+- **Plants appear but no devices or entities**: reload the integration after upgrading; check **Diagnostics** for `device_counts`. On first install, plant subentries must finish syncing before entities are created.
+- **Measure point catalog warnings**: expected for batteries, collectors, and optimizers (`device not supported` or `no upload records found`). Inverter telemetry should still appear.
+- **Missing plant-level sensors**: confirm `/station/latest` returns fields like `generationPower` and `batterySOC` for the plant in the DeyeCloud app.
 - **Entities unavailable**: check diagnostics and repair issues in Settings → Repairs.
 
 ## Removal

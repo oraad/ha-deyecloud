@@ -44,7 +44,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeyeCloudConfigEntry) ->
         apply_measure_point_cache_to_coordinator,
         async_refresh_measure_point_cache,
     )
-    from .subentry_sync import async_sync_plant_subentries
+    from .subentry_sync import async_sync_plant_subentries, build_plant_subentry_map
 
     client = DeyeCloudApiClient(
         session=async_get_clientsession(hass),
@@ -102,9 +102,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeyeCloudConfigEntry) ->
 
     stations = [plant.info for plant in coordinator.data.values()]
 
+    had_plant_subentries = bool(build_plant_subentry_map(entry))
     _, structural_changed, _ = await async_sync_plant_subentries(hass, entry, stations)
 
-    if structural_changed:
+    refreshed_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    if refreshed_entry is not None:
+        entry = refreshed_entry
+
+    if structural_changed and had_plant_subentries:
         hass.config_entries.async_schedule_reload(entry.entry_id)
 
         return True

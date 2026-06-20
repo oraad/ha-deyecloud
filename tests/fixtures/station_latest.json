@@ -1,9 +1,13 @@
 {
   "success": true,
-  "stationData": {
-    "generationValue": 12.5,
-    "consumptionValue": 8.2,
-    "gridValue": 3.1,
-    "currentPower": 1500
-  }
+  "generationPower": 1500.0,
+  "consumptionPower": 820.0,
+  "gridPower": 310.0,
+  "purchasePower": 120.0,
+  "chargePower": null,
+  "dischargePower": 276.0,
+  "batteryPower": 276.0,
+  "batterySOC": 95.0,
+  "wirePower": 0.0,
+  "lastUpdateTime": 1781963148.0
 }

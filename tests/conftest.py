@@ -158,10 +158,10 @@ def mock_api_client():
             return_value=StationData(
                 station_id="101",
                 data={
-                    "generationValue": 12.5,
-                    "consumptionValue": 8.2,
-                    "gridValue": 3.1,
-                    "currentPower": 1500,
+                    "generationPower": 12.5,
+                    "consumptionPower": 8.2,
+                    "gridPower": 3.1,
+                    "batterySOC": 85.0,
                 },
             )
         )

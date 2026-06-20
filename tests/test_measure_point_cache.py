@@ -76,6 +76,31 @@ async def test_refresh_measure_point_cache_tolerates_partial_failure(
     assert "GOOD888" in runtime.measure_point_cache
 
 
+async def test_refresh_measure_point_cache_caches_permanent_failures(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Permanent measurePoints failures are cached as empty catalogs."""
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+    from custom_components.deyecloud.exceptions import DeyeCloudApiError
+
+    mock_config_entry.add_to_hass(hass)
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    runtime = DeyeCloudRuntimeData(client=mock_api_client, coordinator=coordinator)
+    mock_config_entry.runtime_data = runtime
+
+    mock_api_client.async_get_device_measure_points = AsyncMock(
+        side_effect=DeyeCloudApiError("device not supported")
+    )
+
+    devices = [Device(device_sn="BAT001", device_type="BATTERY", station_id="101")]
+    await async_refresh_measure_point_cache(mock_config_entry, devices)
+
+    assert runtime.measure_point_cache["BAT001"] == []
+    mock_api_client.async_get_device_measure_points.reset_mock()
+    await async_refresh_measure_point_cache(mock_config_entry, devices)
+    mock_api_client.async_get_device_measure_points.assert_not_awaited()
+
+
 def test_iter_device_measure_specs_union() -> None:
     """Union includes catalog-only and latest-only keys."""
     plant = PlantCoordinatorData(

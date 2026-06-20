@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api_types import Device, PlantCoordinatorData
@@ -26,16 +27,16 @@ if TYPE_CHECKING:
     from .coordinator import DeyeCloudCoordinator
 
 _STATION_METRIC_KEYS = (
-    "generationValue",
-    "consumptionValue",
-    "gridValue",
-    "purchaseValue",
-    "chargeValue",
-    "dischargeValue",
-    "currentPower",
+    "generationPower",
+    "consumptionPower",
     "gridPower",
-    "buyPower",
-    "sellPower",
+    "purchasePower",
+    "chargePower",
+    "dischargePower",
+    "batteryPower",
+    "batterySOC",
+    "wirePower",
+    "lastUpdateTime",
 )
 
 
@@ -76,11 +77,17 @@ def _plant_sensor_unique_ids(
     station_id: str,
     plant_data: PlantCoordinatorData,
 ) -> set[str]:
-    unique_ids = {
-        f"plant_{station_id}_station_{normalize_measure_key(key)}"
-        for key in _STATION_METRIC_KEYS
-        if plant_data.station_latest and key in plant_data.station_latest.data
-    }
+    unique_ids: set[str] = set()
+    if plant_data.station_latest:
+        for key in _STATION_METRIC_KEYS:
+            if key in plant_data.station_latest.data:
+                unique_ids.add(
+                    f"plant_{station_id}_station_{normalize_measure_key(key)}"
+                )
+        if not unique_ids:
+            unique_ids.add(f"plant_{station_id}_station_status")
+    else:
+        unique_ids.add(f"plant_{station_id}_station_status")
     for device in plant_data.devices:
         for point_key, _point_unit in iter_device_measure_specs(
             device.device_sn, plant_data
@@ -99,6 +106,7 @@ def _build_station_entities(
     subentry_id: str,
 ) -> list[DeyeCloudSensor]:
     entities: list[DeyeCloudSensor] = []
+    station_entities_added = False
 
     if plant_data.station_latest:
         for key in _STATION_METRIC_KEYS:
@@ -112,6 +120,16 @@ def _build_station_entities(
                     metric_key=key,
                 )
             )
+            station_entities_added = True
+
+    if not station_entities_added:
+        entities.append(
+            DeyeCloudPlantStatusSensor(
+                coordinator,
+                station_id=station_id,
+                subentry_id=subentry_id,
+            )
+        )
 
     for device in plant_data.devices:
         catalog = {
@@ -179,6 +197,37 @@ class DeyeCloudStationSensor(DeyeCloudSensor):
         if value is None:
             return None
         return parse_numeric_value(str(value))
+
+
+class DeyeCloudPlantStatusSensor(DeyeCloudSensor):
+    """Fallback plant sensor that ensures the plant device exists."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self,
+        coordinator: DeyeCloudCoordinator,
+        *,
+        station_id: str,
+        subentry_id: str,
+    ) -> None:
+        super().__init__(
+            coordinator,
+            station_id=station_id,
+            unique_id=f"plant_{station_id}_station_status",
+            subentry_id=subentry_id,
+            device=None,
+        )
+        self._attr_translation_key = "station_status"
+
+    @property
+    def native_value(self) -> str:
+        plant = self._plant_data()
+        if not plant:
+            return "unknown"
+        if plant.devices:
+            return "ok"
+        return "no_devices"
 
 
 class DeyeCloudDeviceSensor(DeyeCloudSensor):

@@ -80,6 +80,34 @@ async def test_get_station_devices(client: DeyeCloudApiClient) -> None:
         assert devices[0].device_sn == "INV123"
 
 
+async def test_get_station_devices_deduplicates_rows(client: DeyeCloudApiClient) -> None:
+    """Prefer typed device rows when the API returns duplicate serials."""
+    with aioresponses() as mocked:
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/account/token?appId=app-id",
+            payload=load_fixture("token.json"),
+        )
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/station/device",
+            payload={
+                "success": True,
+                "deviceListItems": [
+                    {
+                        "deviceSn": "3422409399",
+                        "deviceType": "COLLECTOR",
+                        "stationId": 101,
+                    },
+                    {"deviceSn": "3422409399", "stationId": 101},
+                ],
+                "total": 2,
+            },
+        )
+        devices = await client.async_get_station_devices(["101"])
+        assert len(devices) == 1
+        assert devices[0].device_sn == "3422409399"
+        assert devices[0].device_type == "COLLECTOR"
+
+
 async def test_get_device_measure_points(client: DeyeCloudApiClient) -> None:
     """Fetch measure points for a device."""
     with aioresponses() as mocked:
@@ -122,7 +150,9 @@ async def test_get_station_latest(client: DeyeCloudApiClient) -> None:
             payload=load_fixture("station_latest.json"),
         )
         latest = await client.async_get_station_latest("101")
-        assert latest.data["generationValue"] == 12.5
+        assert latest.data["generationPower"] == 1500.0
+        assert latest.data["batterySOC"] == 95.0
+        assert "success" not in latest.data
 
 
 async def test_auth_error_raises(client: DeyeCloudApiClient) -> None:

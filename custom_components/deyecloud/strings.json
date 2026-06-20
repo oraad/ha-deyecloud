@@ -179,6 +179,39 @@
       "sell_power": {
         "name": "Sell power"
       },
+      "station_metric_generation_power": {
+        "name": "Solar generation"
+      },
+      "station_metric_consumption_power": {
+        "name": "Consumption"
+      },
+      "station_metric_grid_power": {
+        "name": "Grid power"
+      },
+      "station_metric_purchase_power": {
+        "name": "Grid import"
+      },
+      "station_metric_charge_power": {
+        "name": "Battery charge"
+      },
+      "station_metric_discharge_power": {
+        "name": "Battery discharge"
+      },
+      "station_metric_battery_power": {
+        "name": "Battery power"
+      },
+      "station_metric_battery_soc": {
+        "name": "Battery SOC"
+      },
+      "station_metric_wire_power": {
+        "name": "Wire power"
+      },
+      "station_metric_last_update_time": {
+        "name": "Last update"
+      },
+      "station_status": {
+        "name": "Status"
+      },
       "station_metric_generation_value": {
         "name": "Solar generation"
       },

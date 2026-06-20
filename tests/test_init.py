@@ -26,6 +26,66 @@ from custom_components.deyecloud.const import (
 from tests.conftest import setup_config_entry
 
 
+async def test_first_install_creates_entities_without_reload(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """First setup creates subentries and entities without scheduling reload."""
+    mock_config_entry.add_to_hass(hass)
+
+    with patch.object(
+        hass.config_entries,
+        "async_schedule_reload",
+    ) as schedule_reload:
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+    await hass.async_block_till_done()
+    schedule_reload.assert_not_called()
+
+    entry = hass.config_entries.async_get_entry(mock_config_entry.entry_id)
+    assert entry is not None
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.subentries
+
+    registry = er.async_get(hass)
+    entities = [
+        entity
+        for entity in registry.entities.values()
+        if entity.config_entry_id == mock_config_entry.entry_id
+    ]
+    assert entities
+
+
+async def test_setup_schedules_reload_when_subentries_change(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Runtime structural subentry changes schedule a reload."""
+    from homeassistant.config_entries import ConfigSubentry
+    from types import MappingProxyType
+
+    from custom_components.deyecloud.const import CONF_STATION_ID, SUBENTRY_TYPE_PLANT
+
+    mock_config_entry.add_to_hass(hass)
+    entry = hass.config_entries.async_get_entry(mock_config_entry.entry_id)
+    assert entry is not None
+    hass.config_entries.async_add_subentry(
+        entry,
+        ConfigSubentry(
+            data=MappingProxyType({CONF_STATION_ID: "999"}),
+            subentry_type=SUBENTRY_TYPE_PLANT,
+            title="Stale Plant",
+            unique_id="999",
+        ),
+    )
+
+    with patch.object(
+        hass.config_entries,
+        "async_schedule_reload",
+    ) as schedule_reload:
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+    schedule_reload.assert_called_once_with(mock_config_entry.entry_id)
+
+
 async def test_setup_and_unload(hass, mock_config_entry, mock_api_client) -> None:
     """Test setup creates entities and unloads cleanly."""
     await setup_config_entry(hass, mock_config_entry)

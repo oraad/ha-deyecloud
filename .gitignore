@@ -17,6 +17,9 @@ venv/
 .env
 .env.*
 
+# Local API debug notebooks (may contain tokens in outputs)
+notebooks/
+
 # Editors / OS
 .vscode/
 .idea/

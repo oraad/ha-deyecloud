@@ -49,6 +49,44 @@ def _parse_station(raw: dict[str, Any]) -> Station | None:
     return Station(station_id=station_id, name=str(name), raw=raw)
 
 
+_STATION_LATEST_METADATA_KEYS = frozenset(
+    {"code", "msg", "success", "requestId"},
+)
+
+
+def _parse_station_latest_data(response: dict[str, Any]) -> dict[str, Any]:
+    """Return station telemetry fields without API wrapper metadata."""
+    data = response.get("stationData") or response
+    if not isinstance(data, dict):
+        return {}
+    return {
+        key: value
+        for key, value in data.items()
+        if key not in _STATION_LATEST_METADATA_KEYS
+    }
+
+
+def _prefer_device(existing: Device, new: Device) -> Device:
+    """Keep the row with a known device type when the API returns duplicates."""
+    if existing.device_type and not new.device_type:
+        return existing
+    if new.device_type and not existing.device_type:
+        return new
+    return existing
+
+
+def _dedupe_devices(devices: list[Device]) -> list[Device]:
+    """Drop duplicate deviceSn rows per station."""
+    deduped: dict[tuple[str, str], Device] = {}
+    for device in devices:
+        key = (device.station_id, device.device_sn)
+        if key in deduped:
+            deduped[key] = _prefer_device(deduped[key], device)
+        else:
+            deduped[key] = device
+    return list(deduped.values())
+
+
 def _parse_device(raw: dict[str, Any], station_id: str) -> Device | None:
     device_sn = raw.get("deviceSn") or raw.get("sn")
     if not device_sn:
@@ -228,7 +266,7 @@ class DeyeCloudApiClient:
                 break
             page += 1
 
-        return devices
+        return _dedupe_devices(devices)
 
     async def async_get_device_measure_points(
         self, device_sn: str
@@ -280,10 +318,10 @@ class DeyeCloudApiClient:
             "/station/latest",
             {"stationId": int(float(normalized))},
         )
-        data = response.get("stationData") or response
-        if isinstance(data, dict):
-            return StationData(station_id=normalized, data=data)
-        return StationData(station_id=normalized, data={})
+        return StationData(
+            station_id=normalized,
+            data=_parse_station_latest_data(response),
+        )
 
     async def _authorized_post(
         self,

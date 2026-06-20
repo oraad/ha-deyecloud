@@ -33,6 +33,19 @@ _DISABLED_BY_DEFAULT_KEYS = frozenset(
     }
 )
 
+_STATION_POWER_KEYS = frozenset(
+    {
+        "generationPower",
+        "consumptionPower",
+        "gridPower",
+        "purchasePower",
+        "chargePower",
+        "dischargePower",
+        "batteryPower",
+        "wirePower",
+    }
+)
+
 
 def normalize_measure_key(key: str) -> str:
     """Convert API measure keys to stable snake_case identifiers."""
@@ -73,6 +86,32 @@ def map_unit_to_sensor_classes(
     enabled_default = normalized_key not in {
         normalize_measure_key(item) for item in _DISABLED_BY_DEFAULT_KEYS
     }
+
+    if key in _STATION_POWER_KEYS or normalized_key.endswith("_power"):
+        return (
+            SensorDeviceClass.POWER,
+            SensorStateClass.MEASUREMENT,
+            UnitOfPower.WATT,
+            entity_category,
+            enabled_default,
+        )
+    if key == "batterySOC" or normalized_key == "battery_soc":
+        return (
+            SensorDeviceClass.BATTERY,
+            SensorStateClass.MEASUREMENT,
+            PERCENTAGE,
+            entity_category,
+            enabled_default,
+        )
+    if key == "lastUpdateTime" or normalized_key == "last_update_time":
+        entity_category = EntityCategory.DIAGNOSTIC
+        return (
+            None,
+            SensorStateClass.MEASUREMENT,
+            None,
+            entity_category,
+            enabled_default,
+        )
 
     if normalized_key in {"device_state", "connect_status", "online", "status"}:
         entity_category = EntityCategory.DIAGNOSTIC

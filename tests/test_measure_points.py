@@ -92,6 +92,29 @@ def test_map_unit_to_sensor_classes() -> None:
     assert category is not None
 
 
+def test_map_unit_to_sensor_classes_station_metrics() -> None:
+    """Map production station/latest keys without explicit units."""
+    device_class, state_class, unit, category, enabled = map_unit_to_sensor_classes(
+        None, "generationPower"
+    )
+    assert device_class == SensorDeviceClass.POWER
+    assert unit == UnitOfPower.WATT
+    assert enabled is True
+
+    device_class, state_class, unit, category, enabled = map_unit_to_sensor_classes(
+        None, "batterySOC"
+    )
+    assert device_class == SensorDeviceClass.BATTERY
+    assert unit == PERCENTAGE
+
+    device_class, state_class, unit, category, enabled = map_unit_to_sensor_classes(
+        None, "lastUpdateTime"
+    )
+    assert device_class is None
+    assert category is not None
+    assert enabled is True
+
+
 def test_parse_numeric_value() -> None:
     """Parse numeric API values."""
     assert parse_numeric_value("85") == 85

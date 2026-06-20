@@ -220,6 +220,36 @@
       },
       "station_metric_sell_power": {
         "name": "قدرة البيع"
+      },
+      "station_metric_generation_power": {
+        "name": "التوليد الشمسي"
+      },
+      "station_metric_consumption_power": {
+        "name": "الاستهلاك"
+      },
+      "station_metric_purchase_power": {
+        "name": "الاستيراد من الشبكة"
+      },
+      "station_metric_charge_power": {
+        "name": "شحن البطارية"
+      },
+      "station_metric_discharge_power": {
+        "name": "تفريغ البطارية"
+      },
+      "station_metric_battery_power": {
+        "name": "قدرة البطارية"
+      },
+      "station_metric_battery_soc": {
+        "name": "شحن البطارية (SOC)"
+      },
+      "station_metric_wire_power": {
+        "name": "قدرة السلك"
+      },
+      "station_metric_last_update_time": {
+        "name": "آخر تحديث"
+      },
+      "station_status": {
+        "name": "الحالة"
       }
     },
     "binary_sensor": {

@@ -102,6 +102,11 @@
   },
   "config_subentries": {
     "plant": {
+      "entry_type": "محطة",
+      "initiate_flow": {
+        "user": "إضافة محطة",
+        "reconfigure": "إعادة إعداد المحطة"
+      },
       "step": {
         "user": {
           "title": "إضافة محطة",

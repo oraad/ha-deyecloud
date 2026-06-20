@@ -48,9 +48,7 @@ async def test_build_station_entities_uses_generation_power(
     plant_data = coordinator.data["101"]
     entities = _build_station_entities(coordinator, "101", plant_data, "sub-101")
     station_entities = [
-        entity
-        for entity in entities
-        if isinstance(entity, DeyeCloudStationSensor)
+        entity for entity in entities if isinstance(entity, DeyeCloudStationSensor)
     ]
     assert any(
         entity.unique_id == "plant_101_station_generation_power"

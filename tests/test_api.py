@@ -80,7 +80,9 @@ async def test_get_station_devices(client: DeyeCloudApiClient) -> None:
         assert devices[0].device_sn == "INV123"
 
 
-async def test_get_station_devices_deduplicates_rows(client: DeyeCloudApiClient) -> None:
+async def test_get_station_devices_deduplicates_rows(
+    client: DeyeCloudApiClient,
+) -> None:
     """Prefer typed device rows when the API returns duplicate serials."""
     with aioresponses() as mocked:
         mocked.post(

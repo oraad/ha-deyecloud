@@ -1,0 +1,214 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to DeyeCloud",
+        "description": "Enter your DeyeCloud account and developer application credentials. Documentation: {documentation_url}",
+        "data": {
+          "username": "Username or email",
+          "password": "Password",
+          "app_id": "App ID",
+          "app_secret": "App Secret",
+          "base_url": "API region",
+          "company_id": "Company ID (optional)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate DeyeCloud",
+        "description": "Your DeyeCloud credentials are no longer valid. Update them to continue.",
+        "data": {
+          "username": "Username or email",
+          "password": "Password",
+          "app_id": "App ID",
+          "app_secret": "App Secret",
+          "base_url": "API region",
+          "company_id": "Company ID (optional)"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure DeyeCloud",
+        "description": "Update your DeyeCloud account or API credentials.",
+        "data": {
+          "username": "Username or email",
+          "password": "Password",
+          "app_id": "App ID",
+          "app_secret": "App Secret",
+          "base_url": "API region",
+          "company_id": "Company ID (optional)"
+        }
+      },
+      "plant_select": {
+        "title": "Select plants",
+        "description": "Choose which DeyeCloud plants to load into Home Assistant.",
+        "data": {
+          "selected_plants": "Plants"
+        }
+      }
+    },
+    "error": {
+      "auth_failed": "Authentication failed. Check your credentials and app keys.",
+      "cannot_connect": "Could not connect to DeyeCloud.",
+      "no_stations_found": "Authentication succeeded but no plants were found.",
+      "no_plants_selected": "Select at least one plant to load.",
+      "unknown": "Unexpected error while connecting to DeyeCloud.",
+      "station_not_found": "The selected plant could not be found."
+    },
+    "abort": {
+      "already_configured": "This DeyeCloud account is already configured.",
+      "reauth_successful": "Re-authentication was successful.",
+      "reconfigure_successful": "Reconfiguration was successful.",
+      "all_plants_configured": "All plants from your account are already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "menu_options": {
+          "plants": "Select plants",
+          "credentials": "Update credentials"
+        }
+      },
+      "plants": {
+        "title": "Select plants",
+        "description": "Choose which DeyeCloud plants to load into Home Assistant.",
+        "data": {
+          "selected_plants": "Plants"
+        }
+      },
+      "credentials": {
+        "title": "Update credentials",
+        "data": {
+          "username": "Username or email",
+          "password": "Password",
+          "app_id": "App ID",
+          "app_secret": "App Secret",
+          "base_url": "API region",
+          "company_id": "Company ID (optional)"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "plant": {
+      "step": {
+        "user": {
+          "title": "Add plant",
+          "description": "Select a DeyeCloud plant to expose as a sub-entry.",
+          "data": {
+            "station_id": "Plant"
+          }
+        }
+      },
+      "abort": {
+        "all_plants_configured": "All plants are already configured.",
+        "auth_failed": "Authentication failed while loading plants.",
+        "station_not_found": "The selected plant could not be found."
+      }
+    }
+  },
+  "issues": {
+    "auth_failed": {
+      "title": "DeyeCloud authentication failed",
+      "description": "The integration could not authenticate with DeyeCloud. Re-authenticate to restore monitoring."
+    },
+    "api_unavailable": {
+      "title": "DeyeCloud API unavailable",
+      "description": "The integration could not reach DeyeCloud: {error}"
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Authentication failed."
+    },
+    "connection_failed": {
+      "message": "Connection failed."
+    },
+    "api_error": {
+      "message": "API error: {error}"
+    },
+    "no_stations_found": {
+      "message": "No stations found for this account."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "device_online": {
+        "name": "Online"
+      },
+      "soc": {
+        "name": "Battery SOC"
+      },
+      "total_grid_power": {
+        "name": "Total grid power"
+      },
+      "battery_power": {
+        "name": "Battery power"
+      },
+      "generation_value": {
+        "name": "Solar generation"
+      },
+      "consumption_value": {
+        "name": "Consumption"
+      },
+      "grid_value": {
+        "name": "Grid export"
+      },
+      "purchase_value": {
+        "name": "Grid import"
+      },
+      "charge_value": {
+        "name": "Battery charge"
+      },
+      "discharge_value": {
+        "name": "Battery discharge"
+      },
+      "current_power": {
+        "name": "Current power"
+      },
+      "grid_power": {
+        "name": "Grid power"
+      },
+      "buy_power": {
+        "name": "Buy power"
+      },
+      "sell_power": {
+        "name": "Sell power"
+      },
+      "station_metric_generation_value": {
+        "name": "Solar generation"
+      },
+      "station_metric_consumption_value": {
+        "name": "Consumption"
+      },
+      "station_metric_grid_value": {
+        "name": "Grid export"
+      },
+      "station_metric_purchase_value": {
+        "name": "Grid import"
+      },
+      "station_metric_charge_value": {
+        "name": "Battery charge"
+      },
+      "station_metric_discharge_value": {
+        "name": "Battery discharge"
+      },
+      "station_metric_current_power": {
+        "name": "Current power"
+      },
+      "station_metric_grid_power": {
+        "name": "Grid power"
+      },
+      "station_metric_buy_power": {
+        "name": "Buy power"
+      },
+      "station_metric_sell_power": {
+        "name": "Sell power"
+      }
+    },
+    "binary_sensor": {
+      "device_online": {
+        "name": "Online"
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+.git
+.github
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+coverage.xml
+__pycache__
+*.egg-info
+dist/
+.vscode
+config/.storage
+config/home-assistant_v2.db
+config/home-assistant.log
+config/.HA_VERSION

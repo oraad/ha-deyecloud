@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "stationList": [
+    {
+      "id": 101,
+      "name": "Home Plant"
+    },
+    {
+      "stationId": 202,
+      "stationName": "Office Plant"
+    }
+  ],
+  "total": 2
+}

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "error: Docker is required. Install Docker Desktop or Docker Engine." >&2
+  exit 1
+fi
+
+if ! docker compose version >/dev/null 2>&1; then
+  echo "error: docker compose is required." >&2
+  exit 1
+fi
+
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  setup)
+    docker compose build dev
+    ;;
+  develop)
+    docker compose up homeassistant
+    ;;
+  lint)
+    docker compose run --rm dev python3 -m ruff format . --check
+    docker compose run --rm dev python3 -m ruff check .
+    ;;
+  test|pytest)
+    docker compose run --rm dev python3 -m pytest "$@"
+    ;;
+  mypy)
+    docker compose run --rm dev python3 -m mypy custom_components/deyecloud "$@"
+    ;;
+  run)
+    docker compose run --rm dev "$@"
+    ;;
+  "")
+    echo "usage: scripts/docker {setup|develop|lint|test|mypy|run ...}" >&2
+    exit 1
+    ;;
+  *)
+    echo "error: unknown command: $cmd" >&2
+    echo "usage: scripts/docker {setup|develop|lint|test|mypy|run ...}" >&2
+    exit 1
+    ;;
+esac

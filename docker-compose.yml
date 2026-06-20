@@ -1,0 +1,29 @@
+services:
+  dev:
+    build: .
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      PYTHONPATH: /workspace/custom_components
+    command: sleep infinity
+
+  homeassistant:
+    build: .
+    working_dir: /workspace
+    ports:
+      - "8123:8123"
+    volumes:
+      - .:/workspace
+    environment:
+      PYTHONPATH: /workspace/custom_components
+    command:
+      - bash
+      - -lc
+      - |
+        set -e
+        if [[ ! -d config ]]; then
+          mkdir -p config
+          hass --config config --script ensure_config
+        fi
+        exec hass --config config --debug

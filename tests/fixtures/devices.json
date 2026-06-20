@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "deviceListItems": [
+    {
+      "deviceSn": "INV123",
+      "deviceType": "INVERTER",
+      "deviceState": 1,
+      "connectStatus": 1,
+      "stationId": 101
+    },
+    {
+      "deviceSn": "MTR456",
+      "deviceType": "METER",
+      "deviceState": 1,
+      "connectStatus": 1,
+      "stationId": 101
+    }
+  ],
+  "total": 2
+}

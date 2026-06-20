@@ -1,0 +1,6 @@
+# Dev/test deps. Minimum supported HA: 2026.3.2 (hacs.json / manifest.json).
+colorlog==6.10.1
+homeassistant==2026.3.2
+pip>=24.0
+ruff==0.15.7
+cairosvg==2.7.1

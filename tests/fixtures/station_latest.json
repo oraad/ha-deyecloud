@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "stationData": {
+    "generationValue": 12.5,
+    "consumptionValue": 8.2,
+    "gridValue": 3.1,
+    "currentPower": 1500
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "deviceDataList": [
+    {
+      "deviceSn": "INV123",
+      "deviceType": "INVERTER",
+      "deviceState": 1,
+      "collectionTime": "2026-06-20 12:00:00",
+      "dataList": [
+        {"key": "SOC", "value": "85", "unit": "%", "name": "Battery SOC"},
+        {"key": "TotalGridPower", "value": "1200", "unit": "W", "name": "Total Grid Power"}
+      ]
+    }
+  ]
+}

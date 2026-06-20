@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build zip release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build dev
+      - run: docker compose run --rm dev python3 -m ruff check .
+      - run: docker compose run --rm dev python3 -m ruff format . --check
+      - run: docker compose run --rm dev python3 -m mypy custom_components/deyecloud
+      - run: docker compose run --rm dev python3 -m pytest
+      - run: docker compose run --rm dev python3 scripts/generate_brand_assets.py
+      - name: Extract version
+        id: version
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Build zip
+        run: ./scripts/build_zip "${{ steps.version.outputs.version }}"
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/deyecloud-${{ steps.version.outputs.version }}.zip

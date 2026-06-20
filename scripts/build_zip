@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+version="${1:-1.0.0}"
+root="$(cd "$(dirname "$0")/.." && pwd)"
+source="${root}/custom_components/deyecloud"
+dist="${root}/dist"
+zip_name="deyecloud-${version}.zip"
+zip_path="${dist}/${zip_name}"
+staging="${dist}/staging"
+python="$(dirname "$0")/_python.sh"
+
+if [[ ! -d "${source}" ]]; then
+  echo "error: Integration source not found: ${source}" >&2
+  exit 1
+fi
+
+rm -rf "${staging}"
+mkdir -p "${staging}/custom_components"
+cp -R "${source}" "${staging}/custom_components/deyecloud"
+
+mkdir -p "${dist}"
+rm -f "${zip_path}"
+
+"${python}" - "${staging}" "${zip_path}" <<'PY'
+import sys
+import zipfile
+from pathlib import Path
+
+staging = Path(sys.argv[1])
+zip_path = Path(sys.argv[2])
+
+with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as archive:
+    for path in staging.rglob("*"):
+        if path.is_file():
+            archive.write(path, path.relative_to(staging))
+PY
+
+rm -rf "${staging}"
+
+echo "Created release artifact: ${zip_path}"

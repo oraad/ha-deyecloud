@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest*/
+htmlcov/
+.coverage
+coverage.xml
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# Secrets
+.env
+.env.*
+
+# Editors / OS
+.vscode/
+.idea/
+.cursor/
+Thumbs.db
+.DS_Store
+
+# Home Assistant dev config (keep only configuration.yaml)
+config/*
+!config/configuration.yaml
+config/.storage/
+config/.storage/**
+config/home-assistant_v2.db
+config/home-assistant.log
+config/.HA_VERSION
+config/deps/
+config/tts/
+config/www/
+
+# Release artifacts
+dist/
+*.zip

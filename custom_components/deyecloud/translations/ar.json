@@ -1,0 +1,226 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "الاتصال بـ DeyeCloud",
+        "description": "أدخل بيانات حساب DeyeCloud وبيانات تطبيق المطوّر. التوثيق: {documentation_url}",
+        "data": {
+          "username": "اسم المستخدم أو البريد الإلكتروني",
+          "password": "كلمة المرور",
+          "app_id": "معرّف التطبيق",
+          "app_secret": "سر التطبيق",
+          "base_url": "منطقة واجهة البرمجة",
+          "company_id": "معرّف الشركة (اختياري)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "إعادة المصادقة إلى DeyeCloud",
+        "description": "بيانات اعتماد DeyeCloud لم تعد صالحة. حدّثها للمتابعة.",
+        "data": {
+          "username": "اسم المستخدم أو البريد الإلكتروني",
+          "password": "كلمة المرور",
+          "app_id": "معرّف التطبيق",
+          "app_secret": "سر التطبيق",
+          "base_url": "منطقة واجهة البرمجة",
+          "company_id": "معرّف الشركة (اختياري)"
+        }
+      },
+      "reauth": {
+        "title": "إعادة المصادقة إلى DeyeCloud",
+        "description": "بيانات اعتماد DeyeCloud لم تعد صالحة. حدّثها للمتابعة.",
+        "data": {
+          "username": "اسم المستخدم أو البريد الإلكتروني",
+          "password": "كلمة المرور",
+          "app_id": "معرّف التطبيق",
+          "app_secret": "سر التطبيق",
+          "base_url": "منطقة واجهة البرمجة",
+          "company_id": "معرّف الشركة (اختياري)"
+        }
+      },
+      "reconfigure": {
+        "title": "إعادة إعداد DeyeCloud",
+        "description": "حدّث حساب DeyeCloud أو بيانات اعتماد واجهة البرمجة.",
+        "data": {
+          "username": "اسم المستخدم أو البريد الإلكتروني",
+          "password": "كلمة المرور",
+          "app_id": "معرّف التطبيق",
+          "app_secret": "سر التطبيق",
+          "base_url": "منطقة واجهة البرمجة",
+          "company_id": "معرّف الشركة (اختياري)"
+        }
+      },
+      "plant_select": {
+        "title": "اختيار المحطات",
+        "description": "اختر محطات DeyeCloud التي تريد تحميلها في Home Assistant.",
+        "data": {
+          "selected_plants": "المحطات"
+        }
+      }
+    },
+    "error": {
+      "auth_failed": "فشلت المصادقة. تحقق من بيانات الاعتماد ومفاتيح التطبيق.",
+      "cannot_connect": "تعذّر الاتصال بـ DeyeCloud.",
+      "no_stations_found": "نجحت المصادقة لكن لم يتم العثور على محطات.",
+      "no_plants_selected": "اختر محطة واحدة على الأقل للتحميل.",
+      "unknown": "حدث خطأ غير متوقع أثناء الاتصال بـ DeyeCloud.",
+      "station_not_found": "تعذّر العثور على المحطة المحددة."
+    },
+    "abort": {
+      "already_configured": "حساب DeyeCloud هذا مُعدّ مسبقاً.",
+      "reauth_successful": "تمت إعادة المصادقة بنجاح.",
+      "reconfigure_successful": "تمت إعادة الإعداد بنجاح.",
+      "all_plants_configured": "جميع المحطات في حسابك مُعدّة مسبقاً."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "menu_options": {
+          "plants": "اختيار المحطات",
+          "credentials": "تحديث بيانات الاعتماد"
+        }
+      },
+      "plants": {
+        "title": "اختيار المحطات",
+        "description": "اختر محطات DeyeCloud التي تريد تحميلها في Home Assistant.",
+        "data": {
+          "selected_plants": "المحطات"
+        }
+      },
+      "credentials": {
+        "title": "تحديث بيانات الاعتماد",
+        "data": {
+          "username": "اسم المستخدم أو البريد الإلكتروني",
+          "password": "كلمة المرور",
+          "app_id": "معرّف التطبيق",
+          "app_secret": "سر التطبيق",
+          "base_url": "منطقة واجهة البرمجة",
+          "company_id": "معرّف الشركة (اختياري)"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "plant": {
+      "step": {
+        "user": {
+          "title": "إضافة محطة",
+          "description": "اختر محطة DeyeCloud لإضافتها كإدخال فرعي.",
+          "data": {
+            "station_id": "المحطة"
+          }
+        }
+      },
+      "abort": {
+        "all_plants_configured": "جميع المحطات مُعدّة مسبقاً.",
+        "auth_failed": "فشلت المصادقة أثناء تحميل المحطات.",
+        "station_not_found": "تعذّر العثور على المحطة المحددة."
+      }
+    }
+  },
+  "issues": {
+    "auth_failed": {
+      "title": "فشلت مصادقة DeyeCloud",
+      "description": "تعذّر على التكامل المصادقة مع DeyeCloud. أعد المصادقة لاستئناف المراقبة."
+    },
+    "api_unavailable": {
+      "title": "واجهة DeyeCloud غير متاحة",
+      "description": "تعذّر على التكامل الوصول إلى DeyeCloud: {error}"
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "فشلت المصادقة."
+    },
+    "connection_failed": {
+      "message": "فشل الاتصال."
+    },
+    "api_error": {
+      "message": "حدث خطأ في واجهة البرمجة: {error}"
+    },
+    "no_stations_found": {
+      "message": "لم يتم العثور على محطات لهذا الحساب."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "device_online": {
+        "name": "متصل"
+      },
+      "soc": {
+        "name": "شحن البطارية (SOC)"
+      },
+      "total_grid_power": {
+        "name": "القدرة الكلية للشبكة"
+      },
+      "battery_power": {
+        "name": "قدرة البطارية"
+      },
+      "generation_value": {
+        "name": "التوليد الشمسي"
+      },
+      "consumption_value": {
+        "name": "الاستهلاك"
+      },
+      "grid_value": {
+        "name": "التصدير إلى الشبكة"
+      },
+      "purchase_value": {
+        "name": "الاستيراد من الشبكة"
+      },
+      "charge_value": {
+        "name": "شحن البطارية"
+      },
+      "discharge_value": {
+        "name": "تفريغ البطارية"
+      },
+      "current_power": {
+        "name": "القدرة الحالية"
+      },
+      "grid_power": {
+        "name": "قدرة الشبكة"
+      },
+      "buy_power": {
+        "name": "قدرة الشراء"
+      },
+      "sell_power": {
+        "name": "قدرة البيع"
+      },
+      "station_metric_generation_value": {
+        "name": "التوليد الشمسي"
+      },
+      "station_metric_consumption_value": {
+        "name": "الاستهلاك"
+      },
+      "station_metric_grid_value": {
+        "name": "التصدير إلى الشبكة"
+      },
+      "station_metric_purchase_value": {
+        "name": "الاستيراد من الشبكة"
+      },
+      "station_metric_charge_value": {
+        "name": "شحن البطارية"
+      },
+      "station_metric_discharge_value": {
+        "name": "تفريغ البطارية"
+      },
+      "station_metric_current_power": {
+        "name": "القدرة الحالية"
+      },
+      "station_metric_grid_power": {
+        "name": "قدرة الشبكة"
+      },
+      "station_metric_buy_power": {
+        "name": "قدرة الشراء"
+      },
+      "station_metric_sell_power": {
+        "name": "قدرة البيع"
+      }
+    },
+    "binary_sensor": {
+      "device_online": {
+        "name": "متصل"
+      }
+    }
+  }
+}

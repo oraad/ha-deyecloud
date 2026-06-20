@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "measurePoints": [
+    {"key": "SOC", "name": "Battery SOC", "unit": "%"},
+    {"key": "TotalGridPower", "name": "Total Grid Power", "unit": "W"}
+  ]
+}

@@ -1,0 +1,51 @@
+[project]
+name = "ha-deyecloud"
+requires-python = ">=3.14"
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unreachable = true
+show_error_codes = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = [
+  "homeassistant.*",
+  "pytest_homeassistant_custom_component.*",
+  "aioresponses.*",
+  "voluptuous.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "custom_components.deyecloud.config_flow"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+  "custom_components.deyecloud.sensor",
+  "custom_components.deyecloud.binary_sensor",
+  "custom_components.deyecloud.measure_points",
+]
+disable_error_code = ["call-arg", "attr-defined"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+addopts = "--cov=custom_components.deyecloud --cov-report=term-missing --cov-fail-under=95"
+
+[tool.coverage.run]
+source = ["custom_components/deyecloud"]
+omit = [
+  "custom_components/deyecloud/brand/*",
+  "custom_components/deyecloud/config_flow.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]

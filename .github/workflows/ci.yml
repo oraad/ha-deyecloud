@@ -1,0 +1,21 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  docker:
+    name: Lint, typecheck, and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build dev
+      - run: docker compose run --rm dev python3 -m ruff check .
+      - run: docker compose run --rm dev python3 -m ruff format . --check
+      - run: docker compose run --rm dev python3 -m mypy custom_components/deyecloud
+      - run: docker compose run --rm dev python3 -m pytest

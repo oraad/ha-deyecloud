@@ -9,7 +9,8 @@ dist="${root}/dist"
 zip_name="deyecloud-${version}.zip"
 zip_path="${dist}/${zip_name}"
 staging="${dist}/staging"
-python="$(dirname "$0")/_python.sh"
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+python="${script_dir}/_python.sh"
 
 if [[ ! -d "${source}" ]]; then
   echo "error: Integration source not found: ${source}" >&2
@@ -23,7 +24,7 @@ cp -R "${source}" "${staging}/custom_components/deyecloud"
 mkdir -p "${dist}"
 rm -f "${zip_path}"
 
-"${python}" - "${staging}" "${zip_path}" <<'PY'
+bash "${python}" - "${staging}" "${zip_path}" <<'PY'
 import sys
 import zipfile
 from pathlib import Path

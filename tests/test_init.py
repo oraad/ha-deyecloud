@@ -59,8 +59,9 @@ async def test_setup_schedules_reload_when_subentries_change(
     hass, mock_config_entry, mock_api_client
 ) -> None:
     """Runtime structural subentry changes schedule a reload."""
-    from homeassistant.config_entries import ConfigSubentry
     from types import MappingProxyType
+
+    from homeassistant.config_entries import ConfigSubentry
 
     from custom_components.deyecloud.const import CONF_STATION_ID, SUBENTRY_TYPE_PLANT
 

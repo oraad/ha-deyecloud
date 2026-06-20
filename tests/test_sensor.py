@@ -66,7 +66,11 @@ async def test_build_station_entities_adds_plant_status_fallback(
     hass, mock_config_entry, mock_api_client
 ) -> None:
     """A plant status sensor is created when station metrics are unavailable."""
-    from custom_components.deyecloud.api_types import PlantCoordinatorData, Station, StationData
+    from custom_components.deyecloud.api_types import (
+        PlantCoordinatorData,
+        Station,
+        StationData,
+    )
     from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
     from custom_components.deyecloud.sensor import DeyeCloudPlantStatusSensor
 

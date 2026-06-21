@@ -149,9 +149,6 @@
   },
   "entity": {
     "sensor": {
-      "device_online": {
-        "name": "متصل"
-      },
       "soc": {
         "name": "شحن البطارية (SOC)"
       },

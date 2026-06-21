@@ -46,6 +46,37 @@ _STATION_POWER_KEYS = frozenset(
     }
 )
 
+_STATION_METRIC_LABELS: dict[str, str] = {
+    "generationPower": "Solar generation",
+    "consumptionPower": "Consumption",
+    "gridPower": "Grid power",
+    "purchasePower": "Grid import",
+    "chargePower": "Battery charge",
+    "dischargePower": "Battery discharge",
+    "batteryPower": "Battery power",
+    "batterySOC": "Battery SOC",
+    "wirePower": "Wire power",
+    "lastUpdateTime": "Last update",
+}
+
+_TRANSLATED_MEASURE_POINT_KEYS = frozenset(
+    {
+        "soc",
+        "total_grid_power",
+        "battery_power",
+        "generation_value",
+        "consumption_value",
+        "grid_value",
+        "purchase_value",
+        "charge_value",
+        "discharge_value",
+        "current_power",
+        "grid_power",
+        "buy_power",
+        "sell_power",
+    }
+)
+
 
 def normalize_measure_key(key: str) -> str:
     """Convert API measure keys to stable snake_case identifiers."""
@@ -64,9 +95,61 @@ def friendly_measure_name(key: str, api_name: str | None = None) -> str:
     return normalized.title()
 
 
+def station_metric_label(key: str) -> str:
+    """Return a human-readable station metric name."""
+    return _STATION_METRIC_LABELS.get(key, friendly_measure_name(key))
+
+
 def measure_point_translation_key(key: str) -> str:
     """Return translation key for a measure point."""
     return normalize_measure_key(key)
+
+
+def has_measure_point_translation(key: str) -> bool:
+    """Return True when strings.json defines a translation for this measure point."""
+    return normalize_measure_key(key) in _TRANSLATED_MEASURE_POINT_KEYS
+
+
+def _display_precision(
+    device_class: SensorDeviceClass | None,
+    normalized_unit: str,
+) -> int | None:
+    """Return suggested UI decimal places for a sensor type."""
+    if normalized_unit in {"kWh", "KWH"}:
+        return 2
+    if normalized_unit in {"Wh", "WH"}:
+        return 0
+    if normalized_unit in {"%", PERCENTAGE}:
+        return 0
+    if normalized_unit in {"V", "v"}:
+        return 1
+    if normalized_unit in {"A", "a"}:
+        return 1
+    if normalized_unit in {"C", "°C", "℃"}:
+        return 1
+    if normalized_unit in {"Hz", "HZ"}:
+        return 2
+    if normalized_unit in {"kW", "KW"}:
+        return 2
+    if normalized_unit == "W":
+        return 0
+    if device_class == SensorDeviceClass.BATTERY:
+        return 0
+    if device_class == SensorDeviceClass.POWER:
+        return 0
+    if device_class == SensorDeviceClass.ENERGY:
+        return 2
+    if device_class == SensorDeviceClass.VOLTAGE:
+        return 1
+    if device_class == SensorDeviceClass.CURRENT:
+        return 1
+    if device_class == SensorDeviceClass.TEMPERATURE:
+        return 1
+    if device_class == SensorDeviceClass.FREQUENCY:
+        return 2
+    if normalized_unit:
+        return 2
+    return None
 
 
 def map_unit_to_sensor_classes(
@@ -78,6 +161,7 @@ def map_unit_to_sensor_classes(
     str | None,
     EntityCategory | None,
     bool,
+    int | None,
 ]:
     """Map API unit/key to HA sensor metadata."""
     normalized_unit = (unit or "").strip()
@@ -87,14 +171,6 @@ def map_unit_to_sensor_classes(
         normalize_measure_key(item) for item in _DISABLED_BY_DEFAULT_KEYS
     }
 
-    if key in _STATION_POWER_KEYS or normalized_key.endswith("_power"):
-        return (
-            SensorDeviceClass.POWER,
-            SensorStateClass.MEASUREMENT,
-            UnitOfPower.WATT,
-            entity_category,
-            enabled_default,
-        )
     if key == "batterySOC" or normalized_key == "battery_soc":
         return (
             SensorDeviceClass.BATTERY,
@@ -102,6 +178,7 @@ def map_unit_to_sensor_classes(
             PERCENTAGE,
             entity_category,
             enabled_default,
+            _display_precision(SensorDeviceClass.BATTERY, normalized_unit),
         )
     if key == "lastUpdateTime" or normalized_key == "last_update_time":
         entity_category = EntityCategory.DIAGNOSTIC
@@ -111,6 +188,7 @@ def map_unit_to_sensor_classes(
             None,
             entity_category,
             enabled_default,
+            None,
         )
 
     if normalized_key in {"device_state", "connect_status", "online", "status"}:
@@ -124,6 +202,7 @@ def map_unit_to_sensor_classes(
             UnitOfEnergy.KILO_WATT_HOUR,
             entity_category,
             enabled_default,
+            _display_precision(SensorDeviceClass.ENERGY, normalized_unit),
         )
     if normalized_unit in {"Wh", "WH"}:
         return (
@@ -132,6 +211,52 @@ def map_unit_to_sensor_classes(
             UnitOfEnergy.WATT_HOUR,
             entity_category,
             enabled_default,
+            _display_precision(SensorDeviceClass.ENERGY, normalized_unit),
+        )
+    if normalized_unit in {"%", PERCENTAGE} or "soc" in normalized_key:
+        return (
+            SensorDeviceClass.BATTERY,
+            SensorStateClass.MEASUREMENT,
+            PERCENTAGE,
+            entity_category,
+            enabled_default,
+            _display_precision(SensorDeviceClass.BATTERY, normalized_unit),
+        )
+    if normalized_unit in {"V", "v"}:
+        return (
+            SensorDeviceClass.VOLTAGE,
+            SensorStateClass.MEASUREMENT,
+            UnitOfElectricPotential.VOLT,
+            entity_category,
+            enabled_default,
+            _display_precision(SensorDeviceClass.VOLTAGE, normalized_unit),
+        )
+    if normalized_unit in {"A", "a"}:
+        return (
+            SensorDeviceClass.CURRENT,
+            SensorStateClass.MEASUREMENT,
+            UnitOfElectricCurrent.AMPERE,
+            entity_category,
+            enabled_default,
+            _display_precision(SensorDeviceClass.CURRENT, normalized_unit),
+        )
+    if normalized_unit in {"C", "°C", "℃"}:
+        return (
+            SensorDeviceClass.TEMPERATURE,
+            SensorStateClass.MEASUREMENT,
+            UnitOfTemperature.CELSIUS,
+            entity_category,
+            enabled_default,
+            _display_precision(SensorDeviceClass.TEMPERATURE, normalized_unit),
+        )
+    if normalized_unit in {"Hz", "HZ"}:
+        return (
+            SensorDeviceClass.FREQUENCY,
+            SensorStateClass.MEASUREMENT,
+            UnitOfFrequency.HERTZ,
+            entity_category,
+            enabled_default,
+            _display_precision(SensorDeviceClass.FREQUENCY, normalized_unit),
         )
     if normalized_unit in {"W", "kW", "KW"}:
         native_unit = (
@@ -145,49 +270,29 @@ def map_unit_to_sensor_classes(
             native_unit,
             entity_category,
             enabled_default,
-        )
-    if normalized_unit in {"V", "v"}:
-        return (
-            SensorDeviceClass.VOLTAGE,
-            SensorStateClass.MEASUREMENT,
-            UnitOfElectricPotential.VOLT,
-            entity_category,
-            enabled_default,
-        )
-    if normalized_unit in {"A", "a"}:
-        return (
-            SensorDeviceClass.CURRENT,
-            SensorStateClass.MEASUREMENT,
-            UnitOfElectricCurrent.AMPERE,
-            entity_category,
-            enabled_default,
-        )
-    if normalized_unit in {"%", PERCENTAGE} or "soc" in normalized_key:
-        return (
-            SensorDeviceClass.BATTERY,
-            SensorStateClass.MEASUREMENT,
-            PERCENTAGE,
-            entity_category,
-            enabled_default,
-        )
-    if normalized_unit in {"C", "°C", "℃"}:
-        return (
-            SensorDeviceClass.TEMPERATURE,
-            SensorStateClass.MEASUREMENT,
-            UnitOfTemperature.CELSIUS,
-            entity_category,
-            enabled_default,
-        )
-    if normalized_unit in {"Hz", "HZ"}:
-        return (
-            SensorDeviceClass.FREQUENCY,
-            SensorStateClass.MEASUREMENT,
-            UnitOfFrequency.HERTZ,
-            entity_category,
-            enabled_default,
+            _display_precision(SensorDeviceClass.POWER, normalized_unit),
         )
 
-    return None, None, normalized_unit or None, entity_category, enabled_default
+    if key in _STATION_POWER_KEYS or (
+        normalized_key.endswith("_power") and not normalized_unit
+    ):
+        return (
+            SensorDeviceClass.POWER,
+            SensorStateClass.MEASUREMENT,
+            UnitOfPower.WATT,
+            entity_category,
+            enabled_default,
+            _display_precision(SensorDeviceClass.POWER, normalized_unit),
+        )
+
+    return (
+        None,
+        None,
+        normalized_unit or None,
+        entity_category,
+        enabled_default,
+        _display_precision(None, normalized_unit),
+    )
 
 
 def parse_numeric_value(value: str | None) -> float | int | str | None:

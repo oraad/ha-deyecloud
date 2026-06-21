@@ -14,6 +14,7 @@ from tests.conftest import setup_config_entry
 def test_device_type_label() -> None:
     """Return friendly labels for known and unknown device types."""
     assert device_type_label("INVERTER") == "Inverter"
+    assert device_type_label("COLLECTOR") == "Collector"
     assert device_type_label(None) == "Device"
     assert device_type_label("CUSTOM_TYPE") == "Custom Type"
 

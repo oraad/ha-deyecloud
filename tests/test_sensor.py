@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.helpers import entity_registry as er
 
 from custom_components.deyecloud.data import DeyeCloudRuntimeData
@@ -59,6 +60,99 @@ async def test_build_station_entities_uses_generation_power(
         entity.unique_id == "station_101_station_battery_soc"
         for entity in station_entities
     )
+
+
+async def test_station_sensor_names_and_classes(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Station sensors expose distinct names and correct device classes."""
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+
+    mock_config_entry.add_to_hass(hass)
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    mock_config_entry.runtime_data = DeyeCloudRuntimeData(
+        client=mock_api_client,
+        coordinator=coordinator,
+    )
+    await coordinator.async_refresh()
+
+    generation = DeyeCloudStationSensor(
+        coordinator,
+        station_id="101",
+        subentry_id="sub-101",
+        metric_key="generationPower",
+    )
+    assert generation.name == "Solar generation"
+    assert generation.device_class == SensorDeviceClass.POWER
+    assert generation.suggested_display_precision == 0
+
+    battery_soc = DeyeCloudStationSensor(
+        coordinator,
+        station_id="101",
+        subentry_id="sub-101",
+        metric_key="batterySOC",
+    )
+    assert battery_soc.name == "Battery SOC"
+    assert battery_soc.device_class == SensorDeviceClass.BATTERY
+    assert battery_soc.suggested_display_precision == 0
+
+
+async def test_device_sensor_uses_api_name_without_translation(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Untranslated device sensors keep API catalog names."""
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+
+    mock_config_entry.add_to_hass(hass)
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    mock_config_entry.runtime_data = DeyeCloudRuntimeData(
+        client=mock_api_client,
+        coordinator=coordinator,
+    )
+    await coordinator.async_refresh()
+    device = coordinator.data["101"].devices[0]
+
+    entity = DeyeCloudDeviceSensor(
+        coordinator,
+        station_id="101",
+        subentry_id="sub-101",
+        device=device,
+        point_key="Pv1Voltage",
+        point_unit="V",
+        point_name="PV1 Voltage",
+    )
+    assert entity.name == "PV1 Voltage"
+    assert entity.translation_key is None
+    assert entity.device_class == SensorDeviceClass.VOLTAGE
+    assert entity.suggested_display_precision == 1
+
+
+async def test_device_sensor_energy_key_with_power_suffix(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Energy units are not forced to power by key suffix."""
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+
+    mock_config_entry.add_to_hass(hass)
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    mock_config_entry.runtime_data = DeyeCloudRuntimeData(
+        client=mock_api_client,
+        coordinator=coordinator,
+    )
+    await coordinator.async_refresh()
+    device = coordinator.data["101"].devices[0]
+
+    entity = DeyeCloudDeviceSensor(
+        coordinator,
+        station_id="101",
+        subentry_id="sub-101",
+        device=device,
+        point_key="gridPower",
+        point_unit="kWh",
+        point_name="Grid energy",
+    )
+    assert entity.device_class == SensorDeviceClass.ENERGY
+    assert entity.suggested_display_precision == 2
 
 
 async def test_build_station_entities_adds_station_status_fallback(

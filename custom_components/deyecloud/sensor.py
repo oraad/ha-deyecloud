@@ -16,10 +16,12 @@ from .entity import DeyeCloudEntity
 from .measure_point_cache import iter_device_measure_specs
 from .measure_points import (
     friendly_measure_name,
+    has_measure_point_translation,
     map_unit_to_sensor_classes,
     measure_point_translation_key,
     normalize_measure_key,
     parse_numeric_value,
+    station_metric_label,
 )
 from .subentry_sync import build_station_subentry_map, register_station_entities
 
@@ -180,13 +182,17 @@ class DeyeCloudStationSensor(DeyeCloudSensor):
         self._attr_translation_key = (
             f"station_metric_{normalize_measure_key(metric_key)}"
         )
+        self._attr_name = station_metric_label(metric_key)
         (
             self._attr_device_class,
             self._attr_state_class,
             self._attr_native_unit_of_measurement,
             self._attr_entity_category,
             self._attr_entity_registry_enabled_default,
+            display_precision,
         ) = map_unit_to_sensor_classes(None, metric_key)
+        if display_precision is not None:
+            self._attr_suggested_display_precision = display_precision
 
     @property
     def native_value(self) -> float | int | str | None:
@@ -255,16 +261,19 @@ class DeyeCloudDeviceSensor(DeyeCloudSensor):
             subentry_id=subentry_id,
             device=device,
         )
-        self._attr_translation_key = measure_point_translation_key(point_key)
         self._attr_name = friendly_measure_name(point_key, point_name)
-        self._attr_suggested_display_precision = 2
+        if has_measure_point_translation(point_key):
+            self._attr_translation_key = measure_point_translation_key(point_key)
         (
             self._attr_device_class,
             self._attr_state_class,
             self._attr_native_unit_of_measurement,
             self._attr_entity_category,
             self._attr_entity_registry_enabled_default,
+            display_precision,
         ) = map_unit_to_sensor_classes(point_unit, point_key)
+        if display_precision is not None:
+            self._attr_suggested_display_precision = display_precision
 
     @property
     def native_value(self) -> float | int | str | None:

@@ -53,7 +53,7 @@ KNOWN_DEVICE_TYPES = frozenset(
 DEVICE_TYPE_LABELS: dict[str, str] = {
     DEVICE_TYPE_INVERTER: "Inverter",
     DEVICE_TYPE_MICRO_INVERTER: "Micro Inverter",
-    DEVICE_TYPE_COLLECTOR: "Concentrator",
+    DEVICE_TYPE_COLLECTOR: "Collector",
     DEVICE_TYPE_BATTERY: "Battery",
     DEVICE_TYPE_MECD: "MECD",
     DEVICE_TYPE_METER: "Meter",

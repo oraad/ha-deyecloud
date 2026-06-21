@@ -146,5 +146,113 @@
     "no_stations_found": {
       "message": "No stations found for this account."
     }
+  },
+  "entity": {
+    "sensor": {
+      "soc": {
+        "name": "Battery SOC"
+      },
+      "total_grid_power": {
+        "name": "Total grid power"
+      },
+      "battery_power": {
+        "name": "Battery power"
+      },
+      "generation_value": {
+        "name": "Solar generation"
+      },
+      "consumption_value": {
+        "name": "Consumption"
+      },
+      "grid_value": {
+        "name": "Grid export"
+      },
+      "purchase_value": {
+        "name": "Grid import"
+      },
+      "charge_value": {
+        "name": "Battery charge"
+      },
+      "discharge_value": {
+        "name": "Battery discharge"
+      },
+      "current_power": {
+        "name": "Current power"
+      },
+      "grid_power": {
+        "name": "Grid power"
+      },
+      "buy_power": {
+        "name": "Buy power"
+      },
+      "sell_power": {
+        "name": "Sell power"
+      },
+      "station_metric_generation_power": {
+        "name": "Solar generation"
+      },
+      "station_metric_consumption_power": {
+        "name": "Consumption"
+      },
+      "station_metric_grid_power": {
+        "name": "Grid power"
+      },
+      "station_metric_purchase_power": {
+        "name": "Grid import"
+      },
+      "station_metric_charge_power": {
+        "name": "Battery charge"
+      },
+      "station_metric_discharge_power": {
+        "name": "Battery discharge"
+      },
+      "station_metric_battery_power": {
+        "name": "Battery power"
+      },
+      "station_metric_battery_soc": {
+        "name": "Battery SOC"
+      },
+      "station_metric_wire_power": {
+        "name": "Wire power"
+      },
+      "station_metric_last_update_time": {
+        "name": "Last update"
+      },
+      "station_status": {
+        "name": "Status"
+      },
+      "station_metric_generation_value": {
+        "name": "Solar generation"
+      },
+      "station_metric_consumption_value": {
+        "name": "Consumption"
+      },
+      "station_metric_grid_value": {
+        "name": "Grid export"
+      },
+      "station_metric_purchase_value": {
+        "name": "Grid import"
+      },
+      "station_metric_charge_value": {
+        "name": "Battery charge"
+      },
+      "station_metric_discharge_value": {
+        "name": "Battery discharge"
+      },
+      "station_metric_current_power": {
+        "name": "Current power"
+      },
+      "station_metric_buy_power": {
+        "name": "Buy power"
+      },
+      "station_metric_sell_power": {
+        "name": "Sell power"
+      }
+    },
+    "binary_sensor": {
+      "device_online": {
+        "name": "Online"
+      }
+    }
   }
 }

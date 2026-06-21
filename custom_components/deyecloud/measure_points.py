@@ -110,43 +110,47 @@ def has_measure_point_translation(key: str) -> bool:
     return normalize_measure_key(key) in _TRANSLATED_MEASURE_POINT_KEYS
 
 
+_UNIT_PRECISION: dict[str, int] = {
+    "kWh": 2,
+    "KWH": 2,
+    "Wh": 0,
+    "WH": 0,
+    "%": 0,
+    PERCENTAGE: 0,
+    "V": 1,
+    "v": 1,
+    "A": 1,
+    "a": 1,
+    "C": 1,
+    "°C": 1,
+    "℃": 1,
+    "Hz": 2,
+    "HZ": 2,
+    "kW": 2,
+    "KW": 2,
+    "W": 0,
+}
+
+_DEVICE_CLASS_PRECISION: dict[SensorDeviceClass, int] = {
+    SensorDeviceClass.BATTERY: 0,
+    SensorDeviceClass.POWER: 0,
+    SensorDeviceClass.ENERGY: 2,
+    SensorDeviceClass.VOLTAGE: 1,
+    SensorDeviceClass.CURRENT: 1,
+    SensorDeviceClass.TEMPERATURE: 1,
+    SensorDeviceClass.FREQUENCY: 2,
+}
+
+
 def _display_precision(
     device_class: SensorDeviceClass | None,
     normalized_unit: str,
 ) -> int | None:
     """Return suggested UI decimal places for a sensor type."""
-    if normalized_unit in {"kWh", "KWH"}:
-        return 2
-    if normalized_unit in {"Wh", "WH"}:
-        return 0
-    if normalized_unit in {"%", PERCENTAGE}:
-        return 0
-    if normalized_unit in {"V", "v"}:
-        return 1
-    if normalized_unit in {"A", "a"}:
-        return 1
-    if normalized_unit in {"C", "°C", "℃"}:
-        return 1
-    if normalized_unit in {"Hz", "HZ"}:
-        return 2
-    if normalized_unit in {"kW", "KW"}:
-        return 2
-    if normalized_unit == "W":
-        return 0
-    if device_class == SensorDeviceClass.BATTERY:
-        return 0
-    if device_class == SensorDeviceClass.POWER:
-        return 0
-    if device_class == SensorDeviceClass.ENERGY:
-        return 2
-    if device_class == SensorDeviceClass.VOLTAGE:
-        return 1
-    if device_class == SensorDeviceClass.CURRENT:
-        return 1
-    if device_class == SensorDeviceClass.TEMPERATURE:
-        return 1
-    if device_class == SensorDeviceClass.FREQUENCY:
-        return 2
+    if normalized_unit in _UNIT_PRECISION:
+        return _UNIT_PRECISION[normalized_unit]
+    if device_class is not None and device_class in _DEVICE_CLASS_PRECISION:
+        return _DEVICE_CLASS_PRECISION[device_class]
     if normalized_unit:
         return 2
     return None

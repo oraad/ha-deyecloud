@@ -1,6 +1,10 @@
 # Dev/test deps. Minimum supported HA: 2026.3.2 (hacs.json / manifest.json).
+# homeassistant is pinned to the *minimum* supported version, not the latest, so
+# CI keeps verifying the floor. It must stay matched with the
+# pytest-homeassistant-custom-component pin in requirements_test.txt (that package
+# pins an exact homeassistant version).
 colorlog==6.10.1
 homeassistant==2026.3.2
 pip>=24.0
-ruff==0.15.7
-cairosvg==2.7.1
+ruff==0.16.9
+cairosvg==2.9.1

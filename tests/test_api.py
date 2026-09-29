@@ -125,6 +125,126 @@ async def test_get_device_measure_points(client: DeyeCloudApiClient) -> None:
         assert points[0].key == "SOC"
 
 
+async def test_get_device_measure_points_accepts_key_strings(
+    client: DeyeCloudApiClient,
+) -> None:
+    """The documented measurePoints schema returns bare key strings."""
+    with aioresponses() as mocked:
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/account/token?appId=app-id",
+            payload=load_fixture("token.json"),
+        )
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/device/measurePoints",
+            payload={
+                "success": True,
+                "measurePoints": ["SOC", "TotalChargeEnergy", "", None],
+            },
+        )
+        points = await client.async_get_device_measure_points("INV123")
+        assert [point.key for point in points] == ["SOC", "TotalChargeEnergy"]
+        assert all(point.name is None and point.unit is None for point in points)
+
+
+async def test_authenticate_strips_bearer_prefix(
+    client: DeyeCloudApiClient,
+) -> None:
+    """Access tokens are documented with the scheme already applied."""
+    with aioresponses() as mocked:
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/account/token?appId=app-id",
+            payload={
+                "success": True,
+                "accessToken": "Bearer eyJhbGciOiJSUzI1NiIsInR5cC",
+                "tokenType": "bearer",
+                "expiresIn": 5183999,
+            },
+        )
+        await client.async_authenticate()
+        assert client.access_token == "eyJhbGciOiJSUzI1NiIsInR5cC"
+
+
+async def test_authenticate_sends_single_bearer_header(
+    client: DeyeCloudApiClient,
+) -> None:
+    """A prefixed token must not produce a doubled Bearer header."""
+    with aioresponses() as mocked:
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/account/token?appId=app-id",
+            payload={
+                "success": True,
+                "accessToken": "bearer abc123",
+                "expiresIn": "3600",
+            },
+        )
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/station/list",
+            payload=load_fixture("stations.json"),
+        )
+        await client.async_get_stations()
+
+        headers = [
+            call.kwargs["headers"]
+            for call_list in mocked.requests.values()
+            for call in call_list
+            if call.kwargs.get("headers")
+        ]
+        assert headers == [{"Authorization": "Bearer abc123"}]
+
+
+@pytest.mark.parametrize(
+    "expires_in",
+    [3600, "3600", 3600.0, " 3600 "],
+)
+async def test_authenticate_accepts_expires_in_string(
+    client: DeyeCloudApiClient,
+    expires_in: object,
+) -> None:
+    """ExpiresIn is declared as a string in the OpenAPI schema."""
+    import time
+
+    with aioresponses() as mocked:
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/account/token?appId=app-id",
+            payload={
+                "success": True,
+                "accessToken": "test-access-token",
+                "expiresIn": expires_in,
+            },
+        )
+        await client.async_authenticate()
+
+    assert client._token_expires_at == pytest.approx(
+        time.monotonic() + 3540,
+        abs=5,
+    )
+
+
+@pytest.mark.parametrize("expires_in", [None, "not-a-number", -1, True])
+async def test_authenticate_falls_back_on_bad_expires_in(
+    client: DeyeCloudApiClient,
+    expires_in: object,
+) -> None:
+    """Unusable expiresIn values fall back to the conservative 25 minute window."""
+    import time
+
+    with aioresponses() as mocked:
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/account/token?appId=app-id",
+            payload={
+                "success": True,
+                "accessToken": "test-access-token",
+                "expiresIn": expires_in,
+            },
+        )
+        await client.async_authenticate()
+
+    assert client._token_expires_at == pytest.approx(
+        time.monotonic() + 25 * 60,
+        abs=5,
+    )
+
+
 async def test_get_device_latest_batches(client: DeyeCloudApiClient) -> None:
     """Fetch latest telemetry in batches."""
     with aioresponses() as mocked:

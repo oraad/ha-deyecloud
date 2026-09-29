@@ -15,6 +15,7 @@ from custom_components.deyecloud.config_flow import (
     StationSubentryFlowHandler,
 )
 from custom_components.deyecloud.const import (
+    BASE_URL_OPTIONS,
     CONF_APP_ID,
     CONF_APP_SECRET,
     CONF_BASE_URL,
@@ -41,6 +42,16 @@ USER_INPUT = {
     CONF_APP_SECRET: "app-secret",
     CONF_BASE_URL: DEFAULT_BASE_URL_EU,
 }
+
+
+def test_base_url_options_cover_documented_data_centers() -> None:
+    """Every documented DeyeCloud data center must be selectable."""
+    assert set(BASE_URL_OPTIONS) == {
+        "https://eu1-developer.deyecloud.com/v1.0",
+        "https://us1-developer.deyecloud.com/v1.0",
+        "https://india-developer.deyecloud.com/v1.0",
+    }
+    assert all(label for label in BASE_URL_OPTIONS.values())
 
 
 async def test_user_flow_success(hass) -> None:

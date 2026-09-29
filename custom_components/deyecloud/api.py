@@ -30,6 +30,42 @@ def _sha256(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest().lower()
 
 
+def _strip_bearer(token: str) -> str:
+    """
+    Remove a redundant ``Bearer `` prefix from an access token.
+
+    The OpenAPI spec documents ``accessToken`` with the scheme already
+    applied ("Bearer eyJ...") alongside a separate ``tokenType`` field, so the
+    prefix is stripped before it is re-added to the Authorization header.
+    """
+    stripped = token.strip()
+    parts = stripped.split(None, 1)
+    if len(parts) == 2 and parts[0].lower() == "bearer":
+        return parts[1].strip()
+    return stripped
+
+
+def _parse_expires_in(value: Any) -> float | None:
+    """
+    Return the token lifetime in seconds, or None when not usable.
+
+    ``expiresIn`` is declared as a string in the OpenAPI schema while the
+    documented example emits a number, so both forms are accepted.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        seconds = float(value)
+    elif isinstance(value, str):
+        try:
+            seconds = float(value.strip())
+        except ValueError:
+            return None
+    else:
+        return None
+    return seconds if seconds > 0 else None
+
+
 def _build_login_payload(login: str) -> dict[str, str]:
     login = login.strip()
     if "@" in login:
@@ -123,6 +159,30 @@ def _parse_device_data(raw: dict[str, Any]) -> DeviceData:
     )
 
 
+def _parse_measure_points(response: dict[str, Any]) -> list[MeasurePoint]:
+    """
+    Return supported measure points from a measurePoints response.
+
+    The OpenAPI schema documents ``measurePoints`` as an array of key strings
+    ("SOC", "TotalChargeEnergy"), while the live API also returns objects with
+    ``key``/``name``/``unit``. Both forms are accepted.
+    """
+    points: list[MeasurePoint] = []
+    for item in _as_list(response.get("measurePoints")):
+        if isinstance(item, str):
+            if item.strip():
+                points.append(MeasurePoint(key=item.strip(), name=None, unit=None))
+        elif isinstance(item, dict) and item.get("key") is not None:
+            points.append(
+                MeasurePoint(
+                    key=str(item["key"]),
+                    name=item.get("name"),
+                    unit=item.get("unit"),
+                )
+            )
+    return points
+
+
 class DeyeCloudApiClient:
     """Typed async client for DeyeCloud OpenAPI v1."""
 
@@ -183,11 +243,11 @@ class DeyeCloudApiClient:
         if not token:
             raise DeyeCloudAuthError("Token response missing accessToken")
 
-        self._access_token = str(token)
-        expires_in = response.get("expiresIn")
-        if isinstance(expires_in, (int, float)) and expires_in > 0:
+        self._access_token = _strip_bearer(str(token))
+        expires_in = _parse_expires_in(response.get("expiresIn"))
+        if expires_in is not None:
             # Refresh one minute before expiry.
-            self._token_expires_at = time.monotonic() + float(expires_in) - 60
+            self._token_expires_at = time.monotonic() + expires_in - 60
         else:
             self._token_expires_at = time.monotonic() + 25 * 60
 
@@ -277,15 +337,7 @@ class DeyeCloudApiClient:
             "/device/measurePoints",
             {"deviceSn": device_sn},
         )
-        return [
-            MeasurePoint(
-                key=str(item["key"]),
-                name=item.get("name"),
-                unit=item.get("unit"),
-            )
-            for item in _as_list(response.get("measurePoints"))
-            if isinstance(item, dict) and item.get("key") is not None
-        ]
+        return _parse_measure_points(response)
 
     async def async_get_device_latest(self, device_sns: list[str]) -> list[DeviceData]:
         """Return latest telemetry for devices in API batches."""

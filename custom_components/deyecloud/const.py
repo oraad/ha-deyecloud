@@ -20,10 +20,12 @@ SUBENTRY_TYPE_STATION = "station"
 
 DEFAULT_BASE_URL_EU = "https://eu1-developer.deyecloud.com/v1.0"
 DEFAULT_BASE_URL_US = "https://us1-developer.deyecloud.com/v1.0"
+DEFAULT_BASE_URL_IN = "https://india-developer.deyecloud.com/v1.0"
 
 BASE_URL_OPTIONS = {
     DEFAULT_BASE_URL_EU: "Europe / Asia-Pacific",
     DEFAULT_BASE_URL_US: "Americas",
+    DEFAULT_BASE_URL_IN: "India",
 }
 
 DEVICE_TYPE_INVERTER = "INVERTER"

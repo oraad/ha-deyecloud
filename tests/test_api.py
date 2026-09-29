@@ -386,7 +386,9 @@ async def test_get_device_latest_multiple_batches(client: DeyeCloudApiClient) ->
 
 def _history_request(mocked) -> dict:
     """Return the JSON body sent to /device/history."""
-    key = next(key for key in mocked.requests if key[1].endswith("/device/history"))
+    key = next(
+        key for key in mocked.requests if str(key[1]).endswith("/device/history")
+    )
     return json.loads(mocked.requests[key][0].kwargs["data"])
 
 

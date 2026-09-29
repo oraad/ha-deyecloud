@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
+from zoneinfo import ZoneInfo
 
 import pytest
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -97,6 +99,17 @@ async def test_coordinator_connection_failed(
         await _refresh(coordinator)
 
 
+# Matches the regionTimezone in _optimizer_station. History buckets are keyed by
+# the plant-local date, so the "today" bucket has to be derived rather than
+# hardcoded, otherwise these tests only pass on the day the fixture was written.
+PLANT_TZ = ZoneInfo("Asia/Kolkata")
+
+
+def _plant_today() -> str:
+    """Return today's date at the plant, matching the coordinator's local day."""
+    return datetime.now(tz=UTC).astimezone(PLANT_TZ).date().isoformat()
+
+
 def _optimizer_station() -> Station:
     return Station(
         station_id="101",
@@ -125,7 +138,7 @@ def _coordinator_with_devices(hass, mock_config_entry, mock_api_client, devices)
     mock_api_client.async_get_device_history = AsyncMock(
         return_value=[
             {
-                "time": "2026-09-28",
+                "time": _plant_today(),
                 "itemList": [{"key": "Production", "value": "0.42"}],
             }
         ]

@@ -29,13 +29,29 @@ import sys
 import zipfile
 from pathlib import Path
 
+# Running the suite in the dev container leaves build artefacts in the checkout
+# that the release job then packages. Stale bytecode in a HACS artifact is at
+# best noise and at worst shadows an edited source file, so keep it out. Entries
+# are sorted so the archive layout does not depend on filesystem iteration order.
+EXCLUDED_DIRS = frozenset(
+    {"__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache"}
+)
+EXCLUDED_NAMES = frozenset({".DS_Store"})
+EXCLUDED_SUFFIXES = frozenset({".pyc", ".pyo"})
+
 staging = Path(sys.argv[1])
 zip_path = Path(sys.argv[2])
 
 with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as archive:
-    for path in staging.rglob("*"):
-        if path.is_file():
-            archive.write(path, path.relative_to(staging))
+    for path in sorted(staging.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(staging)
+        if EXCLUDED_DIRS.intersection(relative.parts):
+            continue
+        if path.name in EXCLUDED_NAMES or path.suffix in EXCLUDED_SUFFIXES:
+            continue
+        archive.write(path, relative)
 PY
 
 rm -rf "${staging}"

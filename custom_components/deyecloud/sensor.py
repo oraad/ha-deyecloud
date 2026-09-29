@@ -4,13 +4,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .api_types import Device, StationCoordinatorData
+from .api_types import Device, OptimizerRecord, StationCoordinatorData
 from .const import PARALLEL_UPDATES as _PARALLEL_UPDATES
+from .const import is_panel_optimizer
 from .data import DeyeCloudConfigEntry
 from .entity import DeyeCloudEntity
 from .measure_point_cache import iter_device_measure_specs
@@ -23,9 +28,16 @@ from .measure_points import (
     parse_numeric_value,
     station_metric_label,
 )
+from .optimizers import (
+    optimizer_day_start,
+    optimizer_month_start,
+    resolve_station_timezone,
+)
 from .subentry_sync import build_station_subentry_map, register_station_entities
 
 if TYPE_CHECKING:
+    from datetime import datetime, tzinfo
+
     from .coordinator import DeyeCloudCoordinator
 
 _STATION_METRIC_KEYS = (
@@ -39,6 +51,14 @@ _STATION_METRIC_KEYS = (
     "batterySOC",
     "wirePower",
     "lastUpdateTime",
+)
+
+# Optimizers publish no live telemetry, so they get purpose-built history
+# sensors instead of the generic measure-point entities.
+_OPTIMIZER_FIELDS = (
+    "production_today",
+    "production_month",
+    "average_power",
 )
 
 
@@ -98,6 +118,9 @@ def _station_sensor_unique_ids(
                 f"station_{station_id}_dev_{device.device_sn}_"
                 f"{normalize_measure_key(point_key)}"
             )
+        for field in _OPTIMIZER_FIELDS:
+            if is_panel_optimizer(device.device_type):
+                unique_ids.add(f"station_{station_id}_opt_{device.device_sn}_{field}")
     return unique_ids
 
 
@@ -152,6 +175,17 @@ def _build_station_entities(
                     point_unit=point_unit,
                     point_name=catalog_point.name if catalog_point else None,
                 )
+            )
+        if is_panel_optimizer(device.device_type):
+            entities.extend(
+                DeyeCloudOptimizerSensor(
+                    coordinator,
+                    station_id=station_id,
+                    subentry_id=subentry_id,
+                    device=device,
+                    field=field,
+                )
+                for field in _OPTIMIZER_FIELDS
             )
     return entities
 
@@ -301,6 +335,105 @@ class DeyeCloudDeviceSensor(DeyeCloudSensor):
             device_data = station.device_data.get(self._device.device_sn)
             if device_data and device_data.collection_time is not None:
                 attrs["collection_time"] = device_data.collection_time
+        return attrs
+
+
+class DeyeCloudOptimizerSensor(DeyeCloudSensor, SensorEntity):
+    """
+    History-derived sensor for a panel optimizer.
+
+    Optimizers have no ``/device/latest`` data and reject
+    ``/device/measurePoints``, so ``Production`` from ``/device/history`` is
+    the only source. ``average_power`` is reconstructed by integrating the
+    growth of the daily total and therefore stays ``None`` until a second
+    sample of the same local day arrives.
+    """
+
+    _attr_entity_registry_enabled_default = True
+
+    def __init__(
+        self,
+        coordinator: DeyeCloudCoordinator,
+        *,
+        station_id: str,
+        subentry_id: str,
+        device: Device,
+        field: str,
+    ) -> None:
+        self._field = field
+        super().__init__(
+            coordinator,
+            station_id=station_id,
+            unique_id=f"station_{station_id}_opt_{device.device_sn}_{field}",
+            subentry_id=subentry_id,
+            device=device,
+        )
+        self._attr_translation_key = f"optimizer_{field}"
+
+        if field == "average_power":
+            self._attr_device_class = SensorDeviceClass.POWER
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_native_unit_of_measurement = "W"
+            self._attr_suggested_display_precision = 1
+        else:
+            # TOTAL rather than TOTAL_INCREASING: the daily total resets at
+            # local midnight and the monthly one on the first of the month.
+            self._attr_device_class = SensorDeviceClass.ENERGY
+            self._attr_state_class = SensorStateClass.TOTAL
+            self._attr_native_unit_of_measurement = "kWh"
+            self._attr_suggested_display_precision = 2
+
+    def _record(self) -> OptimizerRecord | None:
+        station = self._station_data()
+        if station is None:
+            return None
+        return station.optimizers.get(self._device.device_sn) if self._device else None
+
+    def _station_timezone(self) -> tzinfo:
+        station = self._station_data()
+        if station is None:
+            return resolve_station_timezone(None)
+        return resolve_station_timezone(station.info.raw)
+
+    @property
+    def native_value(self) -> float | None:
+        record = self._record()
+        if record is None:
+            return None
+        if self._field == "production_today":
+            return record.today
+        if self._field == "production_month":
+            return record.month
+        return record.power
+
+    @property
+    def last_reset(self) -> datetime | None:
+        record = self._record()
+        if record is None or self._field == "average_power":
+            return None
+        timezone_info = self._station_timezone()
+        if self._field == "production_today":
+            return optimizer_day_start(record.date, timezone_info)
+        return optimizer_month_start(record.date, timezone_info)
+
+    @property
+    def available(self) -> bool:
+        # A panel optimizer has no record until its first history poll returns a
+        # bucket for the current local day. Report unavailable rather than
+        # broken while that window is still open.
+        return super().available and self._record() is not None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str | int | float | bool | None]:
+        record = self._record()
+        attrs: dict[str, str | int | float | bool | None] = {
+            "device_sn": self._device.device_sn if self._device else None,
+        }
+        if self._device and self._device.device_type:
+            attrs["device_type"] = self._device.device_type
+        if record is not None:
+            attrs["local_day"] = record.date
+            attrs["online"] = record.online
         return attrs
 
 

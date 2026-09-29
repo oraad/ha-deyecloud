@@ -45,6 +45,35 @@ async def test_refresh_measure_point_cache_fetches_missing_only(
     assert "MTR456" in runtime.measure_point_cache
 
 
+async def test_refresh_measure_point_cache_skips_telemetry_less_devices(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Optimizers and collectors are cached empty without an API call."""
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+
+    mock_config_entry.add_to_hass(hass)
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    runtime = DeyeCloudRuntimeData(client=mock_api_client, coordinator=coordinator)
+    mock_config_entry.runtime_data = runtime
+
+    devices = [
+        Device(device_sn="OPT123", device_type="OPTIMIZER", station_id="101"),
+        Device(
+            device_sn="CONC1",
+            device_type="OPTIMIZER_CONCENTRATOR",
+            station_id="101",
+        ),
+        Device(device_sn="LOG1", device_type="COLLECTOR", station_id="101"),
+        Device(device_sn="INV123", device_type="INVERTER", station_id="101"),
+    ]
+    await async_refresh_measure_point_cache(mock_config_entry, devices)
+
+    mock_api_client.async_get_device_measure_points.assert_awaited_once_with("INV123")
+    assert runtime.measure_point_cache["OPT123"] == []
+    assert runtime.measure_point_cache["CONC1"] == []
+    assert runtime.measure_point_cache["LOG1"] == []
+
+
 async def test_refresh_measure_point_cache_tolerates_partial_failure(
     hass, mock_config_entry, mock_api_client
 ) -> None:

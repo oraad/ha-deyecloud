@@ -14,10 +14,25 @@ if TYPE_CHECKING:
 
 
 def _device_sn_from_unique_id(unique_id: str, domain: str) -> str | None:
-    """Extract device serial from a DeyeCloud entity unique id."""
-    if "_dev_" not in unique_id:
+    """
+    Extract device serial from a DeyeCloud entity unique id.
+
+    Two prefixes carry a serial: ``_dev_`` for live measure-point entities and
+    ``_opt_`` for optimizer history entities. Both must be recognised, otherwise
+    removing an optimizer from the plant would leave its entities orphaned in
+    the registry forever.
+    """
+    marker = None
+    position = len(unique_id)
+    for candidate in ("_dev_", "_opt_"):
+        index = unique_id.find(candidate)
+        if index != -1 and index < position:
+            marker = candidate
+            position = index
+    if marker is None:
         return None
-    suffix = unique_id.split("_dev_", 1)[1]
+
+    suffix = unique_id.split(marker, 1)[1]
     if domain == "binary_sensor" and suffix.endswith("_online"):
         return suffix[: -len("_online")]
     if domain == "sensor":

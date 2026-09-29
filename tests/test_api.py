@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock
 
 import aiohttp
@@ -381,3 +382,137 @@ async def test_get_device_latest_multiple_batches(client: DeyeCloudApiClient) ->
         )
         latest = await client.async_get_device_latest(device_sns)
         assert len(latest) == 2
+
+
+def _history_request(mocked) -> dict:
+    """Return the JSON body sent to /device/history."""
+    key = next(key for key in mocked.requests if key[1].endswith("/device/history"))
+    return json.loads(mocked.requests[key][0].kwargs["data"])
+
+
+async def test_get_device_history_returns_production_buckets(
+    client: DeyeCloudApiClient,
+) -> None:
+    """Fetch daily Production history for an optimizer."""
+    with aioresponses() as mocked:
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/account/token?appId=app-id",
+            payload=load_fixture("token.json"),
+        )
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/device/history",
+            payload=load_fixture("optimizer_history.json"),
+        )
+        buckets = await client.async_get_device_history(
+            "OPT123",
+            granularity=2,
+            start_at="2026-09-01",
+            end_at="2026-09-28",
+        )
+        assert [bucket["time"] for bucket in buckets] == [
+            "2026-09-26",
+            "2026-09-27",
+            "2026-09-28",
+        ]
+        assert buckets[-1]["itemList"] == [
+            {"key": "Production", "value": "0.42", "unit": "kWh"}
+        ]
+
+
+async def test_get_device_history_sends_expected_payload(
+    client: DeyeCloudApiClient,
+) -> None:
+    """History requests carry the granularity and inclusive date bounds."""
+    with aioresponses() as mocked:
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/account/token?appId=app-id",
+            payload=load_fixture("token.json"),
+        )
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/device/history",
+            payload=load_fixture("optimizer_history.json"),
+        )
+        await client.async_get_device_history(
+            "OPT123",
+            granularity=2,
+            start_at="2026-09-01",
+            end_at="2026-09-28",
+        )
+        assert _history_request(mocked) == {
+            "deviceSn": "OPT123",
+            "granularity": 2,
+            "startAt": "2026-09-01",
+            "endAt": "2026-09-28",
+        }
+
+
+async def test_get_device_history_includes_measure_points_when_given(
+    client: DeyeCloudApiClient,
+) -> None:
+    """An explicit measure point list is forwarded to the API."""
+    with aioresponses() as mocked:
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/account/token?appId=app-id",
+            payload=load_fixture("token.json"),
+        )
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/device/history",
+            payload=load_fixture("optimizer_history.json"),
+        )
+        await client.async_get_device_history(
+            "OPT123",
+            granularity=2,
+            start_at="2026-09-01",
+            end_at="2026-09-28",
+            measure_points=["Production"],
+        )
+        assert _history_request(mocked)["measurePoints"] == ["Production"]
+
+
+async def test_get_device_history_empty_response(
+    client: DeyeCloudApiClient,
+) -> None:
+    """An empty dataList yields no buckets rather than raising."""
+    with aioresponses() as mocked:
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/account/token?appId=app-id",
+            payload=load_fixture("token.json"),
+        )
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/device/history",
+            payload=load_fixture("optimizer_history_empty.json"),
+        )
+        buckets = await client.async_get_device_history(
+            "OPT123",
+            granularity=2,
+            start_at="2026-09-01",
+            end_at="2026-09-28",
+        )
+        assert buckets == []
+
+
+async def test_get_device_history_ignores_non_dict_entries(
+    client: DeyeCloudApiClient,
+) -> None:
+    """Junk entries in dataList are dropped instead of breaking derivation."""
+    with aioresponses() as mocked:
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/account/token?appId=app-id",
+            payload=load_fixture("token.json"),
+        )
+        mocked.post(
+            f"{DEFAULT_BASE_URL_EU}/device/history",
+            payload={"dataList": ["nope", None, {"time": "2026-09-28"}]},
+        )
+        buckets = await client.async_get_device_history(
+            "OPT123",
+            granularity=2,
+            start_at="2026-09-01",
+            end_at="2026-09-28",
+        )
+        assert buckets == [{"time": "2026-09-28"}]
+
+
+async def test_get_device_latest_skips_empty_list(client: DeyeCloudApiClient) -> None:
+    """An empty serial list short-circuits instead of calling the API."""
+    assert await client.async_get_device_latest([]) == []

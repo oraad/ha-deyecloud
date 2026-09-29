@@ -68,6 +68,24 @@ class StationData:
 
 
 @dataclass(slots=True)
+class OptimizerRecord:
+    """
+    Derived production history for one panel optimizer.
+
+    ``power`` is reconstructed from the growth of ``today`` because optimizers
+    publish no live power reading. It stays ``None`` until two samples of the
+    same local day are available.
+    """
+
+    device_sn: str
+    date: str | None = None
+    today: float | None = None
+    month: float | None = None
+    power: float | None = None
+    online: bool = True
+
+
+@dataclass(slots=True)
 class StationCoordinatorData:
     """Coordinator payload for one station."""
 
@@ -76,6 +94,7 @@ class StationCoordinatorData:
     device_data: dict[str, DeviceData]
     measure_points: dict[str, list[MeasurePoint]]
     station_latest: StationData | None = None
+    optimizers: dict[str, OptimizerRecord] = field(default_factory=dict)
 
 
 CoordinatorData = dict[str, StationCoordinatorData]

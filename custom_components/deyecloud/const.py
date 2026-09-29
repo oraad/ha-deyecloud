@@ -37,6 +37,7 @@ DEVICE_TYPE_METER = "METER"
 DEVICE_TYPE_RELAY_BOX = "RELAY_BOX"
 DEVICE_TYPE_OPTIMIZER = "OPTIMIZER"
 DEVICE_TYPE_PV_MODULE = "PV_MODULE"
+DEVICE_TYPE_OPTIMIZER_CONCENTRATOR = "OPTIMIZER_CONCENTRATOR"
 
 KNOWN_DEVICE_TYPES = frozenset(
     {
@@ -49,6 +50,30 @@ KNOWN_DEVICE_TYPES = frozenset(
         DEVICE_TYPE_RELAY_BOX,
         DEVICE_TYPE_OPTIMIZER,
         DEVICE_TYPE_PV_MODULE,
+        DEVICE_TYPE_OPTIMIZER_CONCENTRATOR,
+    }
+)
+
+# Panel optimizers report production only through /device/history. The
+# concentrator itself carries no telemetry, and COLLECTOR is a pure data logger.
+OPTIMIZER_DEVICE_TYPES = frozenset(
+    {
+        DEVICE_TYPE_OPTIMIZER,
+        DEVICE_TYPE_OPTIMIZER_CONCENTRATOR,
+    }
+)
+
+# Only the per-panel optimizers expose a per-device Production series.
+PANEL_OPTIMIZER_DEVICE_TYPES = frozenset({DEVICE_TYPE_OPTIMIZER})
+
+# Device types that always return an empty deviceDataList from /device/latest.
+# They are dropped from the latest batches so they cannot consume the
+# 10-serial-per-request budget or the API quota.
+TELEMETRY_LESS_DEVICE_TYPES = frozenset(
+    {
+        DEVICE_TYPE_COLLECTOR,
+        DEVICE_TYPE_OPTIMIZER,
+        DEVICE_TYPE_OPTIMIZER_CONCENTRATOR,
     }
 )
 
@@ -62,11 +87,22 @@ DEVICE_TYPE_LABELS: dict[str, str] = {
     DEVICE_TYPE_RELAY_BOX: "Relay Box",
     DEVICE_TYPE_OPTIMIZER: "Optimizer",
     DEVICE_TYPE_PV_MODULE: "PV Module",
+    DEVICE_TYPE_OPTIMIZER_CONCENTRATOR: "Optimizer Concentrator",
 }
 
 DEVICE_LATEST_BATCH_SIZE = 10
 UPDATE_INTERVAL_SECONDS = 180
 STALE_DEVICE_MISSING_POLLS = 3
+
+# /device/history for optimizers only moves at the daily rollup level, so it is
+# polled far less often than live telemetry.
+OPTIMIZER_UPDATE_INTERVAL_SECONDS = 900
+# A production series that has not moved for this long is treated as idle.
+OPTIMIZER_IDLE_SECONDS = 3600
+# History granularity sent to /device/history. These values are not documented
+# in the OpenAPI schema; they were confirmed against a live SUN-XL20-B station.
+HISTORY_GRANULARITY_DAILY = 2
+HISTORY_GRANULARITY_MONTHLY = 3
 
 ISSUE_AUTH_FAILED = "auth_failed"
 ISSUE_API_UNAVAILABLE = "api_unavailable"
@@ -81,3 +117,25 @@ def device_type_label(device_type: str | None) -> str:
     if device_type in DEVICE_TYPE_LABELS:
         return DEVICE_TYPE_LABELS[device_type]
     return device_type.replace("_", " ").title()
+
+
+def is_optimizer_device(device_type: str | None) -> bool:
+    """Return True for optimizers and their concentrator."""
+    return device_type in OPTIMIZER_DEVICE_TYPES
+
+
+def is_panel_optimizer(device_type: str | None) -> bool:
+    """Return True for optimizers that report a per-device Production series."""
+    return device_type in PANEL_OPTIMIZER_DEVICE_TYPES
+
+
+def supports_latest_telemetry(device_type: str | None) -> bool:
+    """
+    Return True when a device type can produce /device/latest data.
+
+    An unknown device type is assumed to support telemetry so that new Deye
+    device models keep working until they are verified.
+    """
+    if not device_type:
+        return True
+    return device_type not in TELEMETRY_LESS_DEVICE_TYPES

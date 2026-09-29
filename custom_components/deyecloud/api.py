@@ -359,6 +359,40 @@ class DeyeCloudApiClient:
 
         return results
 
+    async def async_get_device_history(
+        self,
+        device_sn: str,
+        *,
+        granularity: int,
+        start_at: str,
+        end_at: str | None = None,
+        measure_points: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Return history buckets for a single device.
+
+        Optimizers are the only devices that need this: their ``/device/latest``
+        payload is empty and ``/device/measurePoints`` is unsupported, so
+        ``Production`` from here is the sole data source. Only ``Production`` is
+        returned in practice even when ``measure_points`` is omitted.
+        """
+        await self.async_authenticate()
+        payload: dict[str, Any] = {
+            "deviceSn": device_sn,
+            "granularity": granularity,
+            "startAt": start_at,
+            "endAt": end_at,
+        }
+        if measure_points:
+            payload["measurePoints"] = measure_points
+
+        response = await self._authorized_post("/device/history", payload)
+        buckets: list[dict[str, Any]] = []
+        for item in _as_list(response.get("dataList")):
+            if isinstance(item, dict):
+                buckets.append(item)
+        return buckets
+
     async def async_get_station_latest(self, station_id: str) -> StationData:
         """Return latest station telemetry."""
         await self.async_authenticate()

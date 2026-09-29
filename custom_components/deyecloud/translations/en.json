@@ -247,6 +247,15 @@
       },
       "station_metric_sell_power": {
         "name": "Sell power"
+      },
+      "optimizer_production_today": {
+        "name": "Production today"
+      },
+      "optimizer_production_month": {
+        "name": "Production this month"
+      },
+      "optimizer_average_power": {
+        "name": "Average power"
       }
     },
     "binary_sensor": {

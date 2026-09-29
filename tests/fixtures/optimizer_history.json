@@ -1,0 +1,22 @@
+{
+  "dataList": [
+    {
+      "time": "2026-09-26",
+      "itemList": [
+        { "key": "Production", "value": "3.21", "unit": "kWh" }
+      ]
+    },
+    {
+      "time": "2026-09-27",
+      "itemList": [
+        { "key": "Production", "value": "4.07", "unit": "kWh" }
+      ]
+    },
+    {
+      "time": "2026-09-28",
+      "itemList": [
+        { "key": "Production", "value": "0.42", "unit": "kWh" }
+      ]
+    }
+  ]
+}

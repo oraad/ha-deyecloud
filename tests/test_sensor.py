@@ -5,9 +5,16 @@ from __future__ import annotations
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.helpers import entity_registry as er
 
+from custom_components.deyecloud.api_types import (
+    Device,
+    OptimizerRecord,
+    Station,
+    StationCoordinatorData,
+)
 from custom_components.deyecloud.data import DeyeCloudRuntimeData
 from custom_components.deyecloud.sensor import (
     DeyeCloudDeviceSensor,
+    DeyeCloudOptimizerSensor,
     DeyeCloudStationSensor,
     DeyeCloudStationStatusSensor,
     _build_station_entities,
@@ -242,3 +249,163 @@ async def test_sensor_setup(hass, mock_config_entry, mock_api_client) -> None:
         and entity.domain == "sensor"
     ]
     assert sensor_entities
+
+
+def _optimizer_coordinator(hass, mock_config_entry, mock_api_client, record=None):
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+
+    mock_config_entry.add_to_hass(hass)
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    mock_config_entry.runtime_data = DeyeCloudRuntimeData(
+        client=mock_api_client,
+        coordinator=coordinator,
+    )
+    coordinator.data = {
+        "101": StationCoordinatorData(
+            info=Station(
+                station_id="101",
+                name="Home Plant",
+                raw={"regionTimezone": "Asia/Kolkata"},
+            ),
+            devices=[
+                Device(
+                    device_sn="OPT123",
+                    device_type="OPTIMIZER",
+                    station_id="101",
+                    connect_status=1,
+                ),
+                Device(
+                    device_sn="CONC1",
+                    device_type="OPTIMIZER_CONCENTRATOR",
+                    station_id="101",
+                    connect_status=1,
+                ),
+            ],
+            device_data={},
+            measure_points={},
+            optimizers={"OPT123": record} if record else {},
+        )
+    }
+    return coordinator
+
+
+def _optimizer_entities(coordinator):
+    return [
+        entity
+        for entity in _build_station_entities(
+            coordinator, "101", coordinator.data["101"], "sub-101"
+        )
+        if isinstance(entity, DeyeCloudOptimizerSensor)
+    ]
+
+
+def test_optimizer_sensors_are_created(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Each panel optimizer gets three history sensors; the concentrator gets none."""
+    coordinator = _optimizer_coordinator(hass, mock_config_entry, mock_api_client)
+    entities = _optimizer_entities(coordinator)
+    assert [entity._field for entity in entities] == [
+        "production_today",
+        "production_month",
+        "average_power",
+    ]
+    assert [entity.unique_id for entity in entities] == [
+        "station_101_opt_OPT123_production_today",
+        "station_101_opt_OPT123_production_month",
+        "station_101_opt_OPT123_average_power",
+    ]
+
+
+def test_optimizer_sensor_units_and_classes(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Energy sensors are resettable totals; power is a measurement."""
+    from homeassistant.components.sensor import SensorStateClass
+
+    coordinator = _optimizer_coordinator(hass, mock_config_entry, mock_api_client)
+    today, month, power = _optimizer_entities(coordinator)
+
+    for energy in (today, month):
+        assert energy.device_class == SensorDeviceClass.ENERGY
+        assert energy.state_class == SensorStateClass.TOTAL
+        assert energy.native_unit_of_measurement == "kWh"
+
+    assert power.device_class == SensorDeviceClass.POWER
+    assert power.state_class == SensorStateClass.MEASUREMENT
+    assert power.native_unit_of_measurement == "W"
+
+
+def test_optimizer_sensor_values(hass, mock_config_entry, mock_api_client) -> None:
+    """Native values come from the derived record."""
+    coordinator = _optimizer_coordinator(
+        hass,
+        mock_config_entry,
+        mock_api_client,
+        record=OptimizerRecord(
+            device_sn="OPT123",
+            date="2026-09-28",
+            today=0.42,
+            month=7.7,
+            power=5400.0,
+            online=True,
+        ),
+    )
+    today, month, power = _optimizer_entities(coordinator)
+    assert today.native_value == 0.42
+    assert month.native_value == 7.7
+    assert power.native_value == 5400.0
+    assert today.available is True
+    assert today.extra_state_attributes["local_day"] == "2026-09-28"
+    assert today.extra_state_attributes["online"] is True
+
+
+def test_optimizer_sensor_unavailable_without_record(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """A missing record reports unavailable rather than a broken entity."""
+    coordinator = _optimizer_coordinator(hass, mock_config_entry, mock_api_client)
+    today, _month, power = _optimizer_entities(coordinator)
+    assert today.native_value is None
+    assert today.available is False
+    assert power.available is False
+
+
+def test_optimizer_sensor_last_reset_uses_plant_timezone(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Energy resets are anchored to the plant's local midnight."""
+    from datetime import timedelta
+
+    coordinator = _optimizer_coordinator(
+        hass,
+        mock_config_entry,
+        mock_api_client,
+        record=OptimizerRecord(
+            device_sn="OPT123", date="2026-09-28", today=0.42, month=7.7
+        ),
+    )
+    today, month, power = _optimizer_entities(coordinator)
+
+    today_reset = today.last_reset
+    assert today_reset is not None
+    assert today_reset.utcoffset() == timedelta(hours=5, minutes=30)
+    assert today_reset.day == 28
+
+    month_reset = month.last_reset
+    assert month_reset is not None
+    assert month_reset.day == 1
+    assert month_reset.month == 9
+
+    # Power is a rate, so it has no reset point.
+    assert power.last_reset is None
+
+
+def test_optimizer_unique_ids_included_in_discovery(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """Optimizer sensors take part in runtime discovery."""
+    coordinator = _optimizer_coordinator(hass, mock_config_entry, mock_api_client)
+    unique_ids = _iter_sensor_unique_ids(coordinator.data)
+    assert "station_101_opt_OPT123_production_today" in unique_ids
+    assert "station_101_opt_OPT123_average_power" in unique_ids

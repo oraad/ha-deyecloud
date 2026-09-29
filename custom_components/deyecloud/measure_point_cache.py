@@ -7,6 +7,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from .api_types import DataPoint, Device, MeasurePoint, StationCoordinatorData
+from .const import supports_latest_telemetry
 from .exceptions import DeyeCloudError
 
 if TYPE_CHECKING:
@@ -93,7 +94,19 @@ async def async_refresh_measure_point_cache(
     """Fetch measure point catalogs for devices missing from the runtime cache."""
     cache = entry.runtime_data.measure_point_cache
     client = entry.runtime_data.client
-    missing = [device for device in devices if device.device_sn not in cache]
+    missing = [
+        device
+        for device in devices
+        if device.device_sn not in cache
+        # Collectors and optimizers always answer "device not supported", so
+        # caching the empty catalog up front avoids a guaranteed-wasted call.
+        and supports_latest_telemetry(device.device_type)
+    ]
+    for device in devices:
+        if device.device_sn not in cache and not supports_latest_telemetry(
+            device.device_type
+        ):
+            cache[device.device_sn] = []
     if not missing:
         return
 

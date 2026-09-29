@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -25,6 +25,10 @@ class DeyeCloudRuntimeData:
     known_binary_unique_ids: set[str] = field(default_factory=set)
     measure_point_cache: dict[str, list[MeasurePoint]] = field(default_factory=dict)
     missing_device_polls: dict[str, int] = field(default_factory=dict)
+    # Carries the open production window per optimizer between polls, keyed by
+    # device serial. The power average cannot be rebuilt from a single sample.
+    optimizer_state: dict[str, dict[str, Any]] = field(default_factory=dict)
+    optimizer_last_poll: float | None = None
     listener_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     listener_pending: bool = False
     discovery_in_progress: bool = False

@@ -247,6 +247,15 @@
       },
       "station_status": {
         "name": "الحالة"
+      },
+      "optimizer_production_today": {
+        "name": "الإنتاج اليومي"
+      },
+      "optimizer_production_month": {
+        "name": "الإنتاج هذا الشهر"
+      },
+      "optimizer_average_power": {
+        "name": "الطابة المتوسطة"
       }
     },
     "binary_sensor": {

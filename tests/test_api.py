@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from unittest.mock import MagicMock
 
 import aiohttp
@@ -389,7 +388,8 @@ def _history_request(mocked) -> dict:
     key = next(
         key for key in mocked.requests if str(key[1]).endswith("/device/history")
     )
-    return json.loads(mocked.requests[key][0].kwargs["data"])
+    # The client posts with json=, so aioresponses exposes the decoded body.
+    return mocked.requests[key][0].kwargs["json"]
 
 
 async def test_get_device_history_returns_production_buckets(

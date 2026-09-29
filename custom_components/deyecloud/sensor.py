@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from homeassistant.components.sensor import (
@@ -63,6 +64,24 @@ _OPTIMIZER_FIELDS = (
 
 
 PARALLEL_UPDATES = _PARALLEL_UPDATES
+
+# Epoch bounds for accepting a timestamp from the API. Anything outside this
+# window is dropped rather than handed to the timestamp device class, which
+# logs a warning on every poll for a value it cannot render.
+_MIN_EPOCH = 946684800  # 2000-01-01T00:00:00Z
+_MAX_EPOCH = 4102444800  # 2100-01-01T00:00:00Z
+
+
+def _timestamp_from_epoch(value: float | str | None) -> datetime | None:
+    """Return a UTC datetime for a plausible Unix epoch in seconds, else None."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if not _MIN_EPOCH <= value <= _MAX_EPOCH:
+        return None
+    try:
+        return datetime.fromtimestamp(value, tz=UTC)
+    except OSError, OverflowError, ValueError:
+        return None
 
 
 async def async_setup_entry(
@@ -229,13 +248,15 @@ class DeyeCloudStationSensor(DeyeCloudSensor):
             self._attr_suggested_display_precision = display_precision
 
     @property
-    def native_value(self) -> float | int | str | None:
+    def native_value(self) -> datetime | float | int | str | None:
         station = self._station_data()
         if not station or not station.station_latest:
             return None
         value = station.station_latest.data.get(self._metric_key)
         if value is None:
             return None
+        if self._attr_device_class is SensorDeviceClass.TIMESTAMP:
+            return _timestamp_from_epoch(parse_numeric_value(value))
         return parse_numeric_value(str(value))
 
 
@@ -310,7 +331,7 @@ class DeyeCloudDeviceSensor(DeyeCloudSensor):
             self._attr_suggested_display_precision = display_precision
 
     @property
-    def native_value(self) -> float | int | str | None:
+    def native_value(self) -> datetime | float | int | str | None:
         station = self._station_data()
         if self._device is None or not station:
             return None
@@ -319,6 +340,8 @@ class DeyeCloudDeviceSensor(DeyeCloudSensor):
             return None
         for point in device_data.data_list:
             if point.key == self._point_key:
+                if self._attr_device_class is SensorDeviceClass.TIMESTAMP:
+                    return _timestamp_from_epoch(parse_numeric_value(point.value))
                 return parse_numeric_value(point.value)
         return None
 

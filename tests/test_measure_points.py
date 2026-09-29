@@ -169,10 +169,14 @@ def test_map_unit_to_sensor_classes_station_metrics() -> None:
     assert unit == PERCENTAGE
     assert precision == 0
 
-    device_class, _state_class, unit, category, enabled, precision = (
+    device_class, state_class, unit, category, enabled, precision = (
         map_unit_to_sensor_classes(None, "lastUpdateTime")
     )
-    assert device_class is None
+    assert device_class is SensorDeviceClass.TIMESTAMP
+    # The timestamp device class is non-numeric, so it takes no unit and no
+    # state class. Home Assistant rejects a unit here outright.
+    assert state_class is None
+    assert unit is None
     assert category is not None
     assert enabled is True
     assert precision is None

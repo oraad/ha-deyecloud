@@ -186,9 +186,14 @@ def map_unit_to_sensor_classes(
         )
     if key == "lastUpdateTime" or normalized_key == "last_update_time":
         entity_category = EntityCategory.DIAGNOSTIC
+        # The API reports a Unix epoch in seconds. The timestamp device class is
+        # what makes Home Assistant render the state as a date and a relative
+        # time, which is the point of this entity. That device class is
+        # non-numeric, so it must carry no unit and no state class, and the
+        # value has to be a datetime rather than a number.
         return (
+            SensorDeviceClass.TIMESTAMP,
             None,
-            SensorStateClass.MEASUREMENT,
             None,
             entity_category,
             enabled_default,

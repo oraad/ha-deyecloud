@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.helpers import entity_registry as er
 
@@ -19,6 +21,7 @@ from custom_components.deyecloud.sensor import (
     DeyeCloudStationStatusSensor,
     _build_station_entities,
     _iter_sensor_unique_ids,
+    _timestamp_from_epoch,
 )
 from tests.conftest import setup_config_entry
 
@@ -104,6 +107,64 @@ async def test_station_sensor_names_and_classes(
     assert battery_soc.suggested_display_precision == 0
 
 
+async def test_station_last_update_is_a_timestamp(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """A station's last update must surface as a time, not the raw epoch."""
+    from unittest.mock import AsyncMock
+
+    from custom_components.deyecloud.api_types import StationData
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+
+    mock_config_entry.add_to_hass(hass)
+    mock_api_client.async_get_station_latest = AsyncMock(
+        return_value=StationData(
+            station_id="101", data={"lastUpdateTime": 1781963148.0}
+        )
+    )
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    mock_config_entry.runtime_data = DeyeCloudRuntimeData(
+        client=mock_api_client,
+        coordinator=coordinator,
+    )
+    await coordinator.async_refresh()
+
+    sensor = DeyeCloudStationSensor(
+        coordinator,
+        station_id="101",
+        subentry_id="sub-101",
+        metric_key="lastUpdateTime",
+    )
+    assert sensor.name == "Last update"
+    assert sensor.device_class is SensorDeviceClass.TIMESTAMP
+    # The timestamp device class is non-numeric, so it must not declare a unit.
+    assert sensor.native_unit_of_measurement is None
+    assert sensor.state_class is None
+
+    # The value is converted to a real datetime, which is what lets the
+    # frontend show a date and a relative time instead of "1781963148".
+    value = sensor.native_value
+    assert isinstance(value, datetime)
+    assert value == datetime(2026, 6, 20, 13, 45, 48, tzinfo=UTC)
+    # Home Assistant renders the state with exactly this format, which is what
+    # the frontend turns into a date and a relative time.
+    assert value.isoformat(timespec="seconds") == "2026-06-20T13:45:48+00:00"
+
+
+def test_timestamp_from_epoch_filters_unusable_values() -> None:
+    """Only a real epoch is converted to a datetime."""
+    assert _timestamp_from_epoch(1781963148) == datetime(
+        2026, 6, 20, 13, 45, 48, tzinfo=UTC
+    )
+    # Out of range, wrong type, or a non-numeric string the API might send.
+    assert _timestamp_from_epoch(0) is None
+    assert _timestamp_from_epoch(-1781963148) is None
+    assert _timestamp_from_epoch(1e15) is None
+    assert _timestamp_from_epoch(value=True) is None
+    assert _timestamp_from_epoch("1781963148") is None
+    assert _timestamp_from_epoch(None) is None
+
+
 async def test_device_sensor_uses_api_name_without_translation(
     hass, mock_config_entry, mock_api_client
 ) -> None:
@@ -132,6 +193,43 @@ async def test_device_sensor_uses_api_name_without_translation(
     assert entity.translation_key is None
     assert entity.device_class == SensorDeviceClass.VOLTAGE
     assert entity.suggested_display_precision == 1
+
+
+async def test_device_sensor_last_update_is_a_timestamp(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """A timestamp measure point on a device must also return a datetime."""
+    from custom_components.deyecloud.coordinator import DeyeCloudCoordinator
+
+    mock_config_entry.add_to_hass(hass)
+    coordinator = DeyeCloudCoordinator(hass, mock_config_entry)
+    mock_config_entry.runtime_data = DeyeCloudRuntimeData(
+        client=mock_api_client,
+        coordinator=coordinator,
+    )
+    await coordinator.async_refresh()
+    device = coordinator.data["101"].devices[0]
+    station = coordinator.data["101"]
+    device_sn = device.device_sn
+    from custom_components.deyecloud.api_types import DataPoint, DeviceData
+
+    station.device_data[device_sn] = DeviceData(
+        device_sn=device_sn,
+        device_type="1",
+        device_state=1,
+        data_list=[DataPoint(key="lastUpdateTime", value="1781963148")],
+    )
+
+    entity = DeyeCloudDeviceSensor(
+        coordinator,
+        station_id="101",
+        subentry_id="sub-101",
+        device=device,
+        point_key="lastUpdateTime",
+        point_unit=None,
+    )
+    assert entity.device_class is SensorDeviceClass.TIMESTAMP
+    assert entity.native_value == datetime(2026, 6, 20, 13, 45, 48, tzinfo=UTC)
 
 
 async def test_device_sensor_energy_key_with_power_suffix(
@@ -249,6 +347,44 @@ async def test_sensor_setup(hass, mock_config_entry, mock_api_client) -> None:
         and entity.domain == "sensor"
     ]
     assert sensor_entities
+
+
+async def test_last_update_state_renders_as_a_date(
+    hass, mock_config_entry, mock_api_client
+) -> None:
+    """End to end, the entity state is a date the frontend can render."""
+    from unittest.mock import AsyncMock
+
+    from custom_components.deyecloud.api_types import StationData
+
+    mock_api_client.async_get_station_latest = AsyncMock(
+        return_value=StationData(
+            station_id="101",
+            data={
+                "generationPower": 12.5,
+                "batterySOC": 85.0,
+                "lastUpdateTime": 1781963148.0,
+            },
+        )
+    )
+    await setup_config_entry(hass, mock_config_entry)
+    await hass.async_block_till_done()
+
+    registry = er.async_get(hass)
+    entity_id = next(
+        entity.entity_id
+        for entity in registry.entities.values()
+        if entity.config_entry_id == mock_config_entry.entry_id
+        and entity.domain == "sensor"
+        and entity.unique_id == "station_101_station_last_update_time"
+    )
+
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.state == "2026-06-20T13:45:48+00:00"
+    assert state.attributes["device_class"] == "timestamp"
+    # Home Assistant would raise on a unit here, so confirm it is absent.
+    assert "unit_of_measurement" not in state.attributes
 
 
 def _optimizer_coordinator(hass, mock_config_entry, mock_api_client, record=None):

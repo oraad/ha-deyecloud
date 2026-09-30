@@ -9,4 +9,4 @@ colorlog==6.10.1
 homeassistant==2026.7.0
 pip>=24.0
 ruff==0.15.21
-cairosvg==2.7.1
+cairosvg==2.9.0

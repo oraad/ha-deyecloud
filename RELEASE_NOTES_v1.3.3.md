@@ -29,9 +29,10 @@ raised minimum Home Assistant version, and it is deliberate.
   now requires 7.1.0 exactly.
 - `pytest-homeassistant-custom-component` 0.13.318 to 0.13.344, which is the
   release that pins Home Assistant 2026.7.0.
-- `manifest.json` now declares `"homeassistant": "2026.7.0"`, so the
-  integration states its own minimum the same way `hacs.json` does. The two
-  were previously out of sync in that the manifest said nothing at all.
+- The minimum is declared in `hacs.json` and pinned in `requirements.txt`.
+  The manifest is deliberately left without a Home Assistant version: hassfest
+  rejects `manifest.json` keys it does not define, so the floor lives in
+  `hacs.json` alone.
 - Ruff 0.15.7 to 0.15.21.
 - Removed 8 ruff ignore rules that no longer matched any finding, so a future
   regression in those rules is no longer silently suppressed.

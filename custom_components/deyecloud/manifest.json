@@ -5,7 +5,6 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/oraad/ha-deyecloud",
-  "homeassistant": "2026.7.0",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/oraad/ha-deyecloud/issues",

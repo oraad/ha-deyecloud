@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, patch
 
+import aiohttp
 import pytest
+from pytest_homeassistant_custom_component.test_util.aiohttp import (
+    AiohttpClientMocker,
+    AiohttpClientMockResponse,
+)
+from yarl import URL
 
 from custom_components.deyecloud.api_types import (
     DataPoint,
@@ -29,6 +36,9 @@ from custom_components.deyecloud.const import (
     DOMAIN,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
 FIXTURES = Path(__file__).parent / "fixtures"
 
 pytest_plugins = "pytest_homeassistant_custom_component"
@@ -39,7 +49,7 @@ def auto_enable_custom_integrations(enable_custom_integrations):
     """Load custom integrations from custom_components for every test."""
 
 
-MIN_HA_VERSION = (2026, 3, 0)
+MIN_HA_VERSION = (2026, 7, 0)
 
 
 def _parse_ha_version(version: str) -> tuple[int, int, int]:
@@ -59,9 +69,55 @@ def pytest_configure(config: pytest.Config) -> None:
 
     if _parse_ha_version(ha_version) < MIN_HA_VERSION:
         pytest.exit(
-            f"Home Assistant {ha_version} is not supported; require >= 2026.3.0",
+            f"Home Assistant {ha_version} is not supported; require >= 2026.7.0",
             returncode=1,
         )
+
+
+def respond_in_order(
+    mock: AiohttpClientMocker,
+    url: str,
+    *responses: dict[str, Any],
+) -> None:
+    """
+    Register several responses that are served in order for one URL.
+
+    ``AiohttpClientMocker`` always answers with the *first* matching
+    registration, so a repeated URL (a 401 followed by the retry, say) is
+    served by a side effect that walks this list exactly once.
+    """
+    queue = [
+        AiohttpClientMockResponse("post", URL(url), **kwargs) for kwargs in responses
+    ]
+
+    async def _side_effect(method: str, request_url: str, data: Any):
+        """Pop the next queued response."""
+        if not queue:
+            raise AssertionError(f"no queued response left for {url}")
+        return queue.pop(0)
+
+    mock.post(url, side_effect=_side_effect)
+
+
+@pytest.fixture
+async def session(
+    aioclient_mock: AiohttpClientMocker,
+) -> AsyncIterator[aiohttp.ClientSession]:
+    """Return an aiohttp session wired to the Home Assistant client mocker."""
+    client_session = aioclient_mock.create_session(asyncio.get_running_loop())
+    try:
+        yield client_session
+    finally:
+        await client_session.close()
+
+
+def request_bodies(mock: AiohttpClientMocker, path: str) -> list[Any]:
+    """Return the JSON bodies the client sent to ``path``."""
+    return [
+        data
+        for _method, url, data, _headers in mock.mock_calls
+        if str(url).endswith(path)
+    ]
 
 
 def load_fixture(name: str) -> dict[str, Any]:

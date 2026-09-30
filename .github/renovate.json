@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices"
+  ],
+  "minimumReleaseAge": "3 days",
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboardOSVVulnerabilitySummary": "all",
+  "timezone": "Asia/Beirut",
+  "packageRules": [
+    {
+      "description": "Raise the Home Assistant floor by hand, never automatically",
+      "matchPackageNames": [
+        "homeassistant",
+        "pytest-homeassistant-custom-component",
+        "pytest-cov"
+      ],
+      "enabled": false
+    }
+  ]
+}

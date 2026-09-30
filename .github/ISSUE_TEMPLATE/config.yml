@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: DeyeCloud documentation
+    url: https://github.com/oraad/ha-deyecloud#readme
+    about: Setup instructions, configuration fields and supported features.
+  - name: Home Assistant logs and debug logging
+    url: https://www.home-assistant.io/integrations/logger/
+    about: How to enable debug logging, which every bug report needs.

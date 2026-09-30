@@ -1,0 +1,108 @@
+---
+name: "Bug report"
+description: "Report a bug with the DeyeCloud integration"
+title: "[Bug]: "
+labels: ["Bug"]
+body:
+- type: markdown
+  attributes:
+    value: |
+      Before you open a new issue, please search the existing issues to see if
+      someone has already reported the same problem.
+
+      This integration is a community project with limited maintenance, so
+      please fill in as much detail as you can — it makes the difference
+      between a bug that gets fixed and one that has to be closed as
+      unreproducible.
+- type: markdown
+  attributes:
+    value: "## Versions"
+- type: input
+  id: ha_version
+  attributes:
+    label: "Home Assistant version"
+    description: "Shown in Settings > System > Repairs, or on the About page."
+    placeholder: "2026.7.0"
+  validations:
+    required: true
+- type: input
+  id: integration_version
+  attributes:
+    label: "DeyeCloud version"
+    description: "Check the HACS page for the installed version, or the `custom_components/deyecloud/manifest.json` version on your install."
+    placeholder: "1.3.2"
+  validations:
+    required: true
+- type: input
+  id: install_method
+  attributes:
+    label: "How did you install the integration?"
+    placeholder: "HACS (recommended)"
+  validations:
+    required: true
+- type: dropdown
+  id: region
+  attributes:
+    label: "Which region/base URL are you using?"
+    options:
+      - Europe / Asia-Pacific (eu1-developer.deyecloud.com)
+      - Americas (us1-developer.deyecloud.com)
+      - India (india-developer.deyecloud.com)
+  validations:
+    required: true
+- type: markdown
+  attributes:
+    value: "## Problem"
+- type: textarea
+  id: description
+  attributes:
+    label: "Describe the issue"
+    description: "What went wrong, and what did you expect to happen instead?"
+  validations:
+    required: true
+- type: textarea
+  id: steps
+  attributes:
+    label: "Steps to reproduce"
+    description: "Without steps to reproduce this is very hard to fix. Issues without them are usually closed."
+    value: |
+      1.
+      2.
+      3.
+      ...
+  validations:
+    required: true
+- type: textarea
+  id: logs
+  attributes:
+    label: "Relevant debug logs"
+    description: |
+      Enable debug logging for this integration first:
+      https://www.home-assistant.io/integrations/logger/
+
+      Paste the output from just before the problem occurs until just after.
+    render: text
+  validations:
+    required: true
+- type: textarea
+  id: diagnostics
+  attributes:
+    label: "Diagnostics download"
+    description: |
+      Go to Settings > Devices & Services > DeyeCloud, open the three-dot menu
+      and choose "Download diagnostics". Drag the file in here.
+
+      Credentials are redacted automatically, but please check the file before
+      uploading it.
+- type: checkboxes
+  attributes:
+    label: "Checklist"
+    options:
+      - label: I enabled debug logging and included the relevant output above.
+        required: true
+      - label: I searched the existing issues and this is not a duplicate.
+        required: true
+      - label: This issue describes a single problem.
+        required: true
+      - label: I removed any personal data from the logs and diagnostics file I attached.
+        required: true

@@ -1,0 +1,64 @@
+---
+name: "Feature request"
+description: "Suggest an idea or improvement for DeyeCloud"
+title: "[Feature]: "
+labels: ["Feature Request"]
+body:
+- type: markdown
+  attributes:
+    value: |
+      Before you open a new request, please search the existing issues to see
+      if the idea has already been suggested.
+
+      Requests that describe the underlying DeyeCloud/Solarman API capability
+      are the most useful, since the integration can only surface what the
+      cloud API exposes.
+- type: checkboxes
+  attributes:
+    label: "Checklist"
+    options:
+      - label: I filled out this template as completely as I could.
+        required: true
+      - label: I searched the existing issues and this is not a duplicate.
+        required: true
+      - label: This request contains a single idea.
+        required: true
+- type: textarea
+  id: problem
+  attributes:
+    label: "What problem would this solve?"
+    description: "A clear and concise description of the problem or limitation you are hitting."
+    placeholder: "I always struggle to [...]"
+  validations:
+    required: true
+- type: textarea
+  id: solution
+  attributes:
+    label: "What would you like to happen?"
+    description: "A clear and concise description of the behaviour you would expect."
+  validations:
+    required: true
+- type: textarea
+  id: api
+  attributes:
+    label: "Which API call or measure point does this involve?"
+    description: |
+      If you know which Solarman/DeyeCloud endpoint or measure point would
+      provide the data, please say so — that makes the request much easier to
+      action.
+  validations:
+    required: false
+- type: textarea
+  id: alternatives
+  attributes:
+    label: "Alternatives you have considered"
+    description: "Any workarounds or other approaches you have already tried."
+  validations:
+    required: false
+- type: textarea
+  id: context
+  attributes:
+    label: "Additional context"
+    description: "Anything else that helps, including screenshots."
+  validations:
+    required: false

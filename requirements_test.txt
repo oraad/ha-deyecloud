@@ -1,9 +1,10 @@
 -r requirements.txt
 # Must stay matched with the homeassistant pin in requirements.txt: this package
-# pins an exact homeassistant version (0.13.318 -> 2026.3.2).
-aioresponses==0.7.8
+# pins an exact homeassistant version (0.13.344 -> 2026.7.0). renovate.json
+# disables updates for this package, so the pair is only ever moved by hand.
 mypy==2.3.1
 # Must stay matched with pytest-homeassistant-custom-component, which pins it
-# exactly; 7.1.0 makes the install unresolvable.
-pytest-cov==7.0.0
-pytest-homeassistant-custom-component==0.13.318
+# exactly. 7.1.0 is a py3-none-any wheel and installs fine; the previous note
+# claiming otherwise predates the PHACC bump that made it mandatory.
+pytest-cov==7.1.0
+pytest-homeassistant-custom-component==0.13.344

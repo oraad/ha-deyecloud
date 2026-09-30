@@ -1,1 +1,3 @@
-scripts/* text eol=lf
+# Normalize line endings to LF everywhere, in the repo and in checkouts, so
+# shell scripts, workflows and Dockerfiles behave the same on every platform.
+* text=auto eol=lf

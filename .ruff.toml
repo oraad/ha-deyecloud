@@ -5,23 +5,21 @@ select = ["ALL"]
 
 ignore = [
   "ANN401",
+  # Not dead: select = ALL also enables D211, so ignoring D203 is what keeps
+  # ruff from warning that the two are incompatible on every run.
   "D203",
   "D212",
   "COM812",
-  "ISC001",
   "PLR0913",
   "PLR2004",
   "S101",
   "SLF001",
-  "TID252",
   "TRY003",
   "EM101",
   "EM102",
   "PLR0911",
   "FBT001",
-  "FBT002",
   "D107",
-  "BLE001",
   "D102",
   "TC001",
   "TC002",
@@ -37,12 +35,8 @@ ignore = [
   "TRY301",
   "PERF401",
   "RET504",
-  "SIM102",
   "SIM105",
   "E501",
-  "EXE002",
-  "CPY001",
-  "LOG004",
 ]
 
 [lint.per-file-ignores]
@@ -51,7 +45,6 @@ ignore = [
   "ARG002",
   "ARG005",
   "PLC0415",
-  "PT011",
   "PT018",
   "INP001",
   "ANN001",

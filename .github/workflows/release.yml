@@ -13,7 +13,7 @@ jobs:
     name: Build zip release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - run: docker compose build dev
       - run: docker compose run --rm dev python3 -m ruff check .
       - run: docker compose run --rm dev python3 -m ruff format . --check
@@ -41,7 +41,7 @@ jobs:
       - name: Build zip
         run: bash ./scripts/build_zip "${{ steps.version.outputs.version }}"
       - name: Upload release asset
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: dist/deyecloud-${{ steps.version.outputs.version }}.zip
           body_path: ${{ runner.temp }}/release_body.md
